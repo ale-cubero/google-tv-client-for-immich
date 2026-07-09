@@ -1,0 +1,42 @@
+package com.immichtv.data.remote
+
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+/**
+ * Proves the read-only guarantee: only GET/HEAD and the two allowlisted non-mutating POSTs are
+ * permitted; every write verb (and any non-allowlisted POST) is rejected.
+ */
+class ReadOnlyInterceptorTest {
+
+    @Test
+    fun `reads are allowed`() {
+        assertTrue(ReadOnlyInterceptor.isReadOnly("GET", "/api/albums"))
+        assertTrue(ReadOnlyInterceptor.isReadOnly("GET", "/api/assets/123/thumbnail"))
+        assertTrue(ReadOnlyInterceptor.isReadOnly("HEAD", "/api/assets/123/video/playback"))
+        assertTrue(ReadOnlyInterceptor.isReadOnly("get", "/api/timeline/buckets")) // case-insensitive
+    }
+
+    @Test
+    fun `allowlisted read POSTs are allowed`() {
+        assertTrue(ReadOnlyInterceptor.isReadOnly("POST", "/api/auth/validateToken"))
+        assertTrue(ReadOnlyInterceptor.isReadOnly("POST", "/api/search/metadata"))
+        // still allowed behind a reverse-proxy sub-path
+        assertTrue(ReadOnlyInterceptor.isReadOnly("POST", "/immich/api/search/metadata"))
+    }
+
+    @Test
+    fun `write verbs are blocked`() {
+        assertFalse(ReadOnlyInterceptor.isReadOnly("DELETE", "/api/assets/123"))
+        assertFalse(ReadOnlyInterceptor.isReadOnly("PUT", "/api/assets/123"))
+        assertFalse(ReadOnlyInterceptor.isReadOnly("PATCH", "/api/albums/123"))
+    }
+
+    @Test
+    fun `non-allowlisted POSTs are blocked`() {
+        assertFalse(ReadOnlyInterceptor.isReadOnly("POST", "/api/assets")) // upload
+        assertFalse(ReadOnlyInterceptor.isReadOnly("POST", "/api/albums")) // create album
+        assertFalse(ReadOnlyInterceptor.isReadOnly("POST", "/api/assets/123/favorite"))
+    }
+}

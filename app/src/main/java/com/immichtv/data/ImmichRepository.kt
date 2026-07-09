@@ -1,0 +1,220 @@
+package com.immichtv.data
+
+import com.immichtv.data.prefs.SettingsRepository
+import com.immichtv.data.remote.AssetDto
+import com.immichtv.data.remote.ExifDto
+import com.immichtv.data.remote.ImmichApi
+import com.immichtv.data.remote.SearchMetadataRequest
+import com.immichtv.data.remote.TimeBucketAssetsDto
+import com.immichtv.domain.Album
+import com.immichtv.domain.AlbumContent
+import com.immichtv.domain.Asset
+import com.immichtv.domain.AssetDetail
+import com.immichtv.domain.BucketMeta
+import com.immichtv.domain.Memory
+import com.immichtv.domain.Person
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import java.time.OffsetDateTime
+import java.time.Year
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+import javax.inject.Inject
+import javax.inject.Singleton
+
+private val MONTH_NAMES = listOf(
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+)
+
+/**
+ * Repository layer: returns domain models, never lets DTOs leak upward.
+ */
+@Singleton
+class ImmichRepository @Inject constructor(
+    private val api: ImmichApi,
+    private val settings: SettingsRepository,
+) {
+    /** True if ping + token validation both succeed against the currently-staged settings. */
+    suspend fun validateConnection(): Result<Unit> = runCatching {
+        api.ping()
+        val token = api.validateToken()
+        check(token.authStatus) { "API key rejected by server" }
+    }
+
+    suspend fun getAlbums(): List<Album> =
+        api.getAlbums().map {
+            Album(
+                id = it.id,
+                name = it.albumName,
+                assetCount = it.assetCount,
+                thumbnailUrl = it.albumThumbnailAssetId?.let(::thumbnailUrl).orEmpty(),
+            )
+        }
+
+    /** "On this day" memories, newest first, titled by how long ago. */
+    suspend fun getMemories(): List<Memory> {
+        val thisYear = Year.now().value
+        return api.getMemories()
+            .filter { it.assets.isNotEmpty() }
+            .map { dto ->
+                val yearsAgo = (thisYear - dto.data.year).coerceAtLeast(0)
+                Memory(
+                    id = dto.id,
+                    title = when (yearsAgo) {
+                        0 -> "This year"
+                        1 -> "1 year ago"
+                        else -> "$yearsAgo years ago"
+                    },
+                    assets = dto.assets.map { it.toDomain() },
+                )
+            }
+    }
+
+    /** Named people for the People rail (with face thumbnails). */
+    suspend fun getPeople(): List<Person> =
+        api.getPeople().people
+            .filter { it.name.isNotBlank() }
+            .map { Person(id = it.id, name = it.name, thumbnailUrl = personThumbnailUrl(it.id)) }
+
+    /** Newest month's assets, for the Recent rail. */
+    suspend fun getRecentAssets(): List<Asset> {
+        val newest = api.getBuckets(albumId = null).firstOrNull() ?: return emptyList()
+        return getBucketAssets(newest.timeBucket)
+    }
+
+    /** Most recent videos, for the Videos rail. */
+    suspend fun getVideos(limit: Int = 40): List<Asset> =
+        api.searchMetadata(SearchMetadataRequest(type = "VIDEO", size = limit))
+            .assets.items.map { it.toDomain() }
+
+    /** All of one person's assets (for the person collection screen). */
+    suspend fun getPersonAssets(personId: String): List<Asset> =
+        api.searchMetadata(SearchMetadataRequest(personIds = listOf(personId), size = 1000))
+            .assets.items.map { it.toDomain() }
+
+    /** Full EXIF + people detail for the viewer's metadata panel. */
+    suspend fun getAssetDetail(assetId: String): AssetDetail {
+        val dto = api.getAssetDetail(assetId)
+        val exif = dto.exifInfo
+        return AssetDetail(
+            fileName = dto.originalFileName,
+            dateTaken = formatDate(exif?.dateTimeOriginal ?: dto.fileCreatedAt),
+            camera = listOfNotNull(exif?.make, exif?.model).joinToString(" ").trim(),
+            exposure = formatExposure(exif),
+            dimensions = formatDimensions(exif),
+            location = listOfNotNull(exif?.city, exif?.state, exif?.country)
+                .filter { it.isNotBlank() }.joinToString(", "),
+            people = dto.people.map { it.name.trim() }.filter { it.isNotBlank() },
+        )
+    }
+
+    private fun formatDate(iso: String): String = runCatching {
+        OffsetDateTime.parse(iso).format(
+            DateTimeFormatter.ofPattern("MMM d, yyyy · HH:mm", Locale.getDefault()),
+        )
+    }.getOrDefault("")
+
+    private fun formatExposure(exif: ExifDto?): String {
+        if (exif == null) return ""
+        return listOfNotNull(
+            exif.fNumber?.let { "ƒ/$it" },
+            exif.exposureTime?.let { "$it s" },
+            exif.iso?.let { "ISO $it" },
+            exif.focalLength?.let { "${it}mm" },
+        ).joinToString("  ·  ")
+    }
+
+    private fun formatDimensions(exif: ExifDto?): String {
+        if (exif == null) return ""
+        val wh = if (exif.exifImageWidth != null && exif.exifImageHeight != null) {
+            "${exif.exifImageWidth} × ${exif.exifImageHeight}"
+        } else {
+            ""
+        }
+        val mb = exif.fileSizeInByte?.let { "%.1f MB".format(it / 1_048_576.0) } ?: ""
+        return listOf(wh, mb).filter { it.isNotBlank() }.joinToString("  ·  ")
+    }
+
+    suspend fun getAlbumContent(albumId: String): AlbumContent {
+        // Album detail carries the name; its assets live in the timeline bucket API (Immich 3.x).
+        val meta = api.getAlbum(albumId)
+        val buckets = api.getBuckets(albumId = albumId)
+        val assets = buckets.flatMap { bucket ->
+            api.getBucket(timeBucket = bucket.timeBucket, albumId = albumId).toAssets()
+        }
+        return AlbumContent(id = meta.id, name = meta.albumName, assets = assets)
+    }
+
+    /**
+     * All month buckets for the whole library (newest first), with flat grid indices precomputed.
+     * A few KB even for 200k assets — this defines the timeline's scroll extent up front.
+     */
+    suspend fun getTimelineBuckets(): List<BucketMeta> {
+        var flatIndex = 0
+        return api.getBuckets(albumId = null).map { dto ->
+            val year = dto.timeBucket.take(4).toIntOrNull() ?: 0
+            val monthIdx = dto.timeBucket.drop(5).take(2).toIntOrNull() ?: 1
+            val meta = BucketMeta(
+                timeBucket = dto.timeBucket,
+                count = dto.count,
+                flatIndex = flatIndex,
+                year = year,
+                label = "${MONTH_NAMES.getOrElse(monthIdx - 1) { "" }} $year",
+            )
+            flatIndex += 1 + dto.count // 1 header row + one item per asset
+            meta
+        }
+    }
+
+    /** Lazily fetch one month's assets (columnar bucket → domain assets). */
+    suspend fun getBucketAssets(timeBucket: String): List<Asset> =
+        api.getBucket(timeBucket = timeBucket, albumId = null).toAssets()
+
+    private fun TimeBucketAssetsDto.toAssets(): List<Asset> =
+        id.mapIndexed { i, assetId ->
+            val video = !isImage.getOrElse(i) { true }
+            Asset(
+                id = assetId,
+                isVideo = video,
+                fileName = "",
+                thumbnailUrl = thumbnailUrl(assetId),
+                previewUrl = previewUrl(assetId),
+                videoUrl = if (video) videoPlaybackUrl(assetId) else "",
+            )
+        }
+
+    private fun AssetDto.toDomain(): Asset {
+        val video = type.equals("VIDEO", ignoreCase = true)
+        return Asset(
+            id = id,
+            isVideo = video,
+            fileName = originalFileName,
+            thumbnailUrl = thumbnailUrl(id),
+            previewUrl = previewUrl(id),
+            videoUrl = if (video) videoPlaybackUrl(id) else "",
+        )
+    }
+
+    private fun personThumbnailUrl(personId: String): String =
+        assetUrl("api/people/$personId/thumbnail") { this }
+
+    /** `{base}/api/assets/{id}/thumbnail?size=thumbnail` — small WebP grid cell. */
+    private fun thumbnailUrl(assetId: String): String =
+        assetUrl("api/assets/$assetId/thumbnail") { addQueryParameter("size", "thumbnail") }
+
+    /** `{base}/api/assets/{id}/thumbnail?size=preview` — ~1440p JPEG for the full-screen viewer. */
+    private fun previewUrl(assetId: String): String =
+        assetUrl("api/assets/$assetId/thumbnail") { addQueryParameter("size", "preview") }
+
+    /** `{base}/api/assets/{id}/video/playback` — ExoPlayer media source (server picks direct/transcode). */
+    private fun videoPlaybackUrl(assetId: String): String =
+        assetUrl("api/assets/$assetId/video/playback") { this }
+
+    private inline fun assetUrl(
+        path: String,
+        query: okhttp3.HttpUrl.Builder.() -> okhttp3.HttpUrl.Builder,
+    ): String {
+        val base = settings.snapshot.baseUrl.toHttpUrlOrNull() ?: return ""
+        return base.newBuilder().addPathSegments(path).query().build().toString()
+    }
+}
