@@ -37,7 +37,13 @@ class ReadOnlyInterceptor @Inject constructor() : Interceptor {
         /** True only for requests that cannot mutate server state. */
         fun isReadOnly(method: String, path: String): Boolean = when (method.uppercase()) {
             "GET", "HEAD" -> true
-            "POST" -> READ_ONLY_POST_PATHS.any { path.endsWith(it) }
+            // Anchored match: the allowlisted path must be the ENTIRE path after an optional
+            // reverse-proxy prefix (i.e. from the FIRST "/api/" onward) — a plain endsWith could
+            // be fooled by a crafted path embedding the suffix after a write route.
+            "POST" -> {
+                val apiPath = path.substring(path.indexOf("/api/").coerceAtLeast(0))
+                READ_ONLY_POST_PATHS.any { apiPath == it }
+            }
             else -> false // PUT, PATCH, DELETE, and any other write verb
         }
     }

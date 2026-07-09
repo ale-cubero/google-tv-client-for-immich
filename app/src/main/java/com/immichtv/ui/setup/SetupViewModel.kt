@@ -39,6 +39,12 @@ class SetupViewModel @Inject constructor(
 
     fun validateAndSave(onConfigured: () -> Unit) {
         val current = _state.value
+        // The API key is a bearer credential: only ever send it over TLS. The platform blocks
+        // cleartext anyway (targetSdk 35), so reject http:// up front with a clear message.
+        if (current.url.trim().startsWith("http://")) {
+            _state.update { it.copy(error = "Only https:// servers are supported — the API key must not travel unencrypted") }
+            return
+        }
         val normalized = ServerSettings(
             baseUrl = normalizeBaseUrl(current.url),
             apiKey = current.apiKey.trim(),

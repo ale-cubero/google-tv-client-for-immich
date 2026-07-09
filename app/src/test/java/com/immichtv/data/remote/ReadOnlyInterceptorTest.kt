@@ -39,4 +39,13 @@ class ReadOnlyInterceptorTest {
         assertFalse(ReadOnlyInterceptor.isReadOnly("POST", "/api/albums")) // create album
         assertFalse(ReadOnlyInterceptor.isReadOnly("POST", "/api/assets/123/favorite"))
     }
+
+    @Test
+    fun `crafted paths embedding an allowlisted suffix are blocked`() {
+        // a write route that merely ends with an allowlisted path must NOT pass
+        assertFalse(ReadOnlyInterceptor.isReadOnly("POST", "/api/assets/api/search/metadata"))
+        assertFalse(ReadOnlyInterceptor.isReadOnly("POST", "/api/x/api/auth/validateToken"))
+        // and a path with no /api/ segment at all
+        assertFalse(ReadOnlyInterceptor.isReadOnly("POST", "/search/metadata"))
+    }
 }
