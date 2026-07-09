@@ -50,6 +50,7 @@ import androidx.media3.ui.PlayerView
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
+import com.immichtv.R
 import com.immichtv.domain.Asset
 import com.immichtv.domain.AssetDetail
 import kotlinx.coroutines.delay
@@ -371,8 +372,10 @@ private fun VideoPage(player: ExoPlayer, poster: Asset) {
         )
         AndroidView(
             factory = { ctx ->
-                PlayerView(ctx).apply {
-                    useController = false
+                // Inflated (not `PlayerView(ctx)`) so it uses a TextureView surface — required to
+                // apply the rotation flag on motion-photo clips correctly (avoids stretching).
+                (android.view.LayoutInflater.from(ctx)
+                    .inflate(R.layout.video_surface, null) as PlayerView).apply {
                     setBackgroundColor(android.graphics.Color.TRANSPARENT)
                     this.player = player
                 }
