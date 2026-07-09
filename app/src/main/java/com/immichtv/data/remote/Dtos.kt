@@ -56,6 +56,9 @@ data class PersonDto(
 data class SearchMetadataRequest(
     val type: String? = null,
     val personIds: List<String>? = null,
+    // "timeline" = only normally-visible assets; excludes hidden Motion Photo video clips
+    // (Samsung/Apple/Google live photos), which have no thumbnails of their own.
+    val visibility: String? = null,
     val size: Int = 100,
     val page: Int = 1,
 )
@@ -110,6 +113,7 @@ data class AssetDto(
     val id: String,
     val type: String = "IMAGE", // "IMAGE" | "VIDEO"
     @SerialName("originalFileName") val originalFileName: String = "",
+    val livePhotoVideoId: String? = null, // set on motion-photo stills → the hidden motion clip
 )
 
 /** One entry from `GET /api/timeline/buckets` — a month and its asset count. */
@@ -130,4 +134,5 @@ data class TimeBucketAssetsDto(
     val isImage: List<Boolean> = emptyList(),
     val ratio: List<Double> = emptyList(),
     val thumbhash: List<String?> = emptyList(),
+    val livePhotoVideoId: List<String?> = emptyList(),
 )

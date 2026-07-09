@@ -39,7 +39,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -49,7 +48,7 @@ import androidx.tv.material3.Card
 import androidx.tv.material3.CardDefaults
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
-import coil3.compose.AsyncImage
+import com.immichtv.ui.common.AssetThumbnail
 import com.immichtv.ui.common.ErrorState
 import com.immichtv.domain.Asset
 import com.immichtv.domain.BucketMeta
@@ -184,28 +183,10 @@ private fun ThumbnailCell(asset: Asset?, modifier: Modifier = Modifier, onClick:
         ),
         modifier = modifier.aspectRatio(1f),
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFF20262C)),
-        ) {
-            if (asset != null) {
-                AsyncImage(
-                    model = asset.thumbnailUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-                if (asset.isVideo) {
-                    Text(
-                        text = "▶",
-                        color = Color.White,
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(6.dp),
-                    )
-                }
-            }
+        if (asset != null) {
+            AssetThumbnail(asset, modifier = Modifier.fillMaxSize())
+        } else {
+            Box(modifier = Modifier.fillMaxSize().background(Color(0xFF20262C)))
         }
     }
 }

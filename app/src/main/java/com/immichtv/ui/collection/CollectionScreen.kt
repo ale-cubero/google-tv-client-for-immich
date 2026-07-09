@@ -30,7 +30,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.Card
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
-import coil3.compose.AsyncImage
+import com.immichtv.ui.common.AssetThumbnail
 import com.immichtv.ui.common.ErrorState
 import com.immichtv.domain.Asset
 
@@ -100,17 +100,7 @@ private fun CollectionGrid(title: String, assets: List<Asset>, onOpen: (Int) -> 
 @Composable
 private fun Cell(asset: Asset, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Card(onClick = onClick, modifier = modifier.aspectRatio(1f)) {
-        Box(modifier = Modifier.fillMaxSize().background(Color(0xFF20262C))) {
-            AsyncImage(
-                model = asset.thumbnailUrl,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
-            if (asset.isVideo) {
-                Text("▶", color = Color.White, modifier = Modifier.align(Alignment.BottomEnd).padding(6.dp))
-            }
-        }
+        AssetThumbnail(asset, modifier = Modifier.fillMaxSize())
     }
 }
 

@@ -35,6 +35,7 @@ data class AssetDetail(
     val fileName: String,
     val dateTaken: String,
     val camera: String,
+    val lens: String,
     val exposure: String,
     val dimensions: String,
     val location: String,
@@ -53,10 +54,14 @@ data class Asset(
     val id: String,
     val isVideo: Boolean,
     val fileName: String,
-    val thumbnailUrl: String, // size=thumbnail — grid cell + viewer placeholder
-    val previewUrl: String,   // size=preview — full-screen photo
-    val videoUrl: String,     // /video/playback — empty for images
-)
+    val thumbnailUrl: String,    // size=thumbnail — grid cell + viewer placeholder
+    val previewUrl: String,      // size=preview — full-screen photo
+    val videoUrl: String,        // /video/playback — empty for images
+    val motionVideoUrl: String = "", // motion-photo clip playback URL — empty unless a live/motion photo
+) {
+    /** A still photo that carries an embedded motion clip (Samsung/Apple/Google live photo). */
+    val hasMotion: Boolean get() = !isVideo && motionVideoUrl.isNotEmpty()
+}
 
 /**
  * Metadata for one month bucket in the timeline. Loaded up front for the whole library so the

@@ -37,6 +37,7 @@ import androidx.tv.material3.Card
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
+import com.immichtv.ui.common.AssetThumbnail
 import com.immichtv.ui.common.ErrorState
 import com.immichtv.domain.Album
 import com.immichtv.domain.Asset
@@ -181,17 +182,7 @@ private fun Rail(
 @Composable
 private fun AssetTile(asset: Asset, onClick: () -> Unit) {
     Card(onClick = onClick, modifier = Modifier.size(180.dp)) {
-        Box(modifier = Modifier.fillMaxSize().background(Color(0xFF20262C))) {
-            AsyncImage(
-                model = asset.thumbnailUrl,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
-            if (asset.isVideo) {
-                Text("▶", color = Color.White, modifier = Modifier.align(Alignment.BottomEnd).padding(8.dp))
-            }
-        }
+        AssetThumbnail(asset, modifier = Modifier.fillMaxSize())
     }
 }
 
@@ -251,12 +242,9 @@ private fun PersonTile(person: Person, onClick: () -> Unit) {
 private fun MemoryTile(memory: Memory, onClick: () -> Unit) {
     Card(onClick = onClick, modifier = Modifier.width(280.dp).height(160.dp)) {
         Box(modifier = Modifier.fillMaxSize().background(Color(0xFF20262C))) {
-            AsyncImage(
-                model = memory.assets.firstOrNull()?.thumbnailUrl,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
+            memory.assets.firstOrNull()?.let { cover ->
+                AssetThumbnail(cover, modifier = Modifier.fillMaxSize())
+            }
             Box(
                 modifier = Modifier
                     .fillMaxWidth()

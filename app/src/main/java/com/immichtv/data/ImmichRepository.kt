@@ -82,15 +82,17 @@ class ImmichRepository @Inject constructor(
         return getBucketAssets(newest.timeBucket)
     }
 
-    /** Most recent videos, for the Videos rail. */
+    /** Most recent real videos for the Videos rail (excludes hidden Motion Photo clips). */
     suspend fun getVideos(limit: Int = 40): List<Asset> =
-        api.searchMetadata(SearchMetadataRequest(type = "VIDEO", size = limit))
-            .assets.items.map { it.toDomain() }
+        api.searchMetadata(
+            SearchMetadataRequest(type = "VIDEO", visibility = "timeline", size = limit),
+        ).assets.items.map { it.toDomain() }
 
-    /** All of one person's assets (for the person collection screen). */
+    /** All of one person's normally-visible assets (excludes hidden Motion Photo clips). */
     suspend fun getPersonAssets(personId: String): List<Asset> =
-        api.searchMetadata(SearchMetadataRequest(personIds = listOf(personId), size = 1000))
-            .assets.items.map { it.toDomain() }
+        api.searchMetadata(
+            SearchMetadataRequest(personIds = listOf(personId), visibility = "timeline", size = 1000),
+        ).assets.items.map { it.toDomain() }
 
     /** Full EXIF + people detail for the viewer's metadata panel. */
     suspend fun getAssetDetail(assetId: String): AssetDetail {
@@ -100,6 +102,7 @@ class ImmichRepository @Inject constructor(
             fileName = dto.originalFileName,
             dateTaken = formatDate(exif?.dateTimeOriginal ?: dto.fileCreatedAt),
             camera = listOfNotNull(exif?.make, exif?.model).joinToString(" ").trim(),
+            lens = exif?.lensModel?.trim().orEmpty(),
             exposure = formatExposure(exif),
             dimensions = formatDimensions(exif),
             location = listOfNotNull(exif?.city, exif?.state, exif?.country)
@@ -173,6 +176,7 @@ class ImmichRepository @Inject constructor(
     private fun TimeBucketAssetsDto.toAssets(): List<Asset> =
         id.mapIndexed { i, assetId ->
             val video = !isImage.getOrElse(i) { true }
+            val motionClipId = livePhotoVideoId.getOrNull(i)
             Asset(
                 id = assetId,
                 isVideo = video,
@@ -180,6 +184,7 @@ class ImmichRepository @Inject constructor(
                 thumbnailUrl = thumbnailUrl(assetId),
                 previewUrl = previewUrl(assetId),
                 videoUrl = if (video) videoPlaybackUrl(assetId) else "",
+                motionVideoUrl = if (!video && motionClipId != null) videoPlaybackUrl(motionClipId) else "",
             )
         }
 
@@ -192,6 +197,7 @@ class ImmichRepository @Inject constructor(
             thumbnailUrl = thumbnailUrl(id),
             previewUrl = previewUrl(id),
             videoUrl = if (video) videoPlaybackUrl(id) else "",
+            motionVideoUrl = if (!video && livePhotoVideoId != null) videoPlaybackUrl(livePhotoVideoId) else "",
         )
     }
 

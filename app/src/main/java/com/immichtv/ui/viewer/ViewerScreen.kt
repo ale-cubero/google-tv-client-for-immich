@@ -5,9 +5,12 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
@@ -113,6 +116,8 @@ private fun ViewerPager(
     var isPlaying by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
     var slideshow by remember { mutableStateOf(false) }
+    // A motion photo (live photo) is playing its clip over the still.
+    var motionPlaying by remember { mutableStateOf(false) }
     // Per-direction tap vs hold tracking (hold = seek on video, tap = prev/next asset).
     var pendingTap by remember { mutableIntStateOf(0) } // -1 left, +1 right, 0 none
 
@@ -121,9 +126,10 @@ private fun ViewerPager(
         scope.launch { pagerState.animateScrollToPage(target) }
     }
 
-    // Video end advances the slideshow; keep latest slideshow flag readable inside the listener.
+    // Playback ended: advance the slideshow (real video) or settle a motion photo onto its still.
     val slideshowNow by rememberUpdatedState(slideshow)
     val advanceNow by rememberUpdatedState(::advance)
+    val currentAssetNow by rememberUpdatedState(assets.getOrNull(pagerState.currentPage))
     DisposableEffect(player) {
         val listener = object : Player.Listener {
             override fun onIsPlayingChanged(playing: Boolean) {
@@ -131,21 +137,30 @@ private fun ViewerPager(
             }
 
             override fun onPlaybackStateChanged(state: Int) {
-                if (state == Player.STATE_ENDED && slideshowNow) advanceNow()
+                if (state != Player.STATE_ENDED) return
+                val asset = currentAssetNow
+                when {
+                    asset?.isVideo == true && slideshowNow -> advanceNow()
+                    asset?.hasMotion == true -> motionPlaying = false // show the still
+                }
             }
         }
         player.addListener(listener)
         onDispose { player.removeListener(listener) }
     }
 
-    // In slideshow, videos play once then advance; normally they loop.
-    LaunchedEffect(slideshow) {
-        player.repeatMode = if (slideshow) Player.REPEAT_MODE_OFF else Player.REPEAT_MODE_ONE
+    // Loop a real video (unless in slideshow); motion clips and slideshow videos play once.
+    LaunchedEffect(slideshow, pagerState.settledPage) {
+        val asset = assets.getOrNull(pagerState.settledPage)
+        player.repeatMode =
+            if (asset?.isVideo == true && !slideshow) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
     }
 
-    // Auto-play the video when its page settles; stop audio on photo pages.
+    // On page settle: auto-play a real video; photos (incl. motion photos) show the still.
+    // A motion photo's clip plays on demand (OK), not automatically.
     LaunchedEffect(pagerState.settledPage) {
         val asset = assets.getOrNull(pagerState.settledPage) ?: return@LaunchedEffect
+        motionPlaying = false
         if (asset.isVideo) {
             player.setMediaItem(MediaItem.fromUri(asset.videoUrl))
             player.prepare()
@@ -154,6 +169,15 @@ private fun ViewerPager(
             player.playWhenReady = false
             player.clearMediaItems()
         }
+    }
+
+    fun playMotion() {
+        val asset = assets.getOrNull(pagerState.currentPage) ?: return
+        if (!asset.hasMotion) return
+        player.setMediaItem(MediaItem.fromUri(asset.motionVideoUrl))
+        player.prepare()
+        player.playWhenReady = true
+        motionPlaying = true
     }
 
     // Slideshow photo timer (videos advance on end via the listener above).
@@ -197,8 +221,12 @@ private fun ViewerPager(
                         }
                         Key.DirectionCenter, Key.Enter -> {
                             slideshow = false
-                            if (onVideo) {
-                                if (player.isPlaying) player.pause() else player.play()
+                            // OK: play/pause a video, play a motion photo's clip on demand,
+                            // or toggle the detail panel on a plain photo. (Details = Down.)
+                            when {
+                                onVideo -> if (player.isPlaying) player.pause() else player.play()
+                                current?.hasMotion == true -> { showInfo = false; playMotion() }
+                                else -> showInfo = !showInfo
                             }
                             true
                         }
@@ -225,16 +253,32 @@ private fun ViewerPager(
                 }
             },
     ) {
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.fillMaxSize(),
-            beyondViewportPageCount = 1,
-        ) { page ->
-            val asset = assets[page]
-            when {
-                asset.isVideo && page == pagerState.currentPage ->
-                    VideoPage(player, poster = asset)
-                else -> PhotoPage(asset)
+        Row(modifier = Modifier.fillMaxSize()) {
+            // Photo/video shrinks to the left to make room for the panel on the right.
+            Box(modifier = Modifier.weight(if (showInfo) 0.64f else 1f).fillMaxHeight()) {
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize(),
+                    beyondViewportPageCount = 1,
+                ) { page ->
+                    val asset = assets[page]
+                    val isCurrent = page == pagerState.currentPage
+                    when {
+                        asset.isVideo && isCurrent -> VideoPage(player, poster = asset)
+                        asset.hasMotion && isCurrent && motionPlaying -> VideoPage(player, poster = asset)
+                        else -> PhotoPage(asset)
+                    }
+                }
+            }
+            if (showInfo) {
+                MetadataSidePanel(
+                    detail = detail,
+                    asset = current,
+                    position = pagerState.currentPage + 1,
+                    total = assets.size,
+                    isPlaying = isPlaying,
+                    modifier = Modifier.weight(0.36f).fillMaxHeight(),
+                )
             }
         }
 
@@ -251,13 +295,16 @@ private fun ViewerPager(
             )
         }
 
-        if (showInfo) {
-            MetadataPanel(
-                detail = detail,
-                asset = current,
-                position = pagerState.currentPage + 1,
-                total = assets.size,
-                isPlaying = isPlaying,
+        if (current?.hasMotion == true) {
+            Text(
+                text = if (motionPlaying) "◉ LIVE" else "◉ LIVE  ·  OK to play",
+                color = Color.White,
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(24.dp)
+                    .background(Color(0x88000000))
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
             )
         }
     }
@@ -337,25 +384,25 @@ private fun VideoPage(player: ExoPlayer, poster: Asset) {
 }
 
 @Composable
-private fun androidx.compose.foundation.layout.BoxScope.MetadataPanel(
+private fun MetadataSidePanel(
     detail: AssetDetail?,
     asset: Asset?,
     position: Int,
     total: Int,
     isPlaying: Boolean,
+    modifier: Modifier = Modifier,
 ) {
+    val kind = when {
+        asset?.isVideo == true -> "Video · " + if (isPlaying) "playing" else "paused"
+        else -> "Photo"
+    }
     Column(
-        modifier = Modifier
-            .align(Alignment.BottomStart)
-            .fillMaxWidth()
-            .background(Color(0xDD000000))
-            .padding(horizontal = 48.dp, vertical = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = modifier
+            .background(Color(0xF00E1216))
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 36.dp, vertical = 54.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        val kind = when {
-            asset?.isVideo == true -> "Video · " + if (isPlaying) "playing" else "paused"
-            else -> "Photo"
-        }
         Text(
             text = detail?.fileName?.takeIf { it.isNotBlank() } ?: kind,
             color = Color.White,
@@ -364,24 +411,32 @@ private fun androidx.compose.foundation.layout.BoxScope.MetadataPanel(
         )
         Text(
             text = "$position / $total   ·   $kind",
-            color = Color(0xFFBFC7CE),
+            color = Color(0xFF8A929A),
             style = MaterialTheme.typography.bodyMedium,
         )
         if (detail == null) {
             Text("Loading details…", color = Color(0xFF8A929A), style = MaterialTheme.typography.bodyMedium)
         } else {
-            InfoLine(detail.dateTaken)
-            InfoLine(detail.camera)
-            InfoLine(detail.exposure)
-            InfoLine(detail.dimensions)
-            InfoLine(detail.location)
-            InfoLine(detail.people.joinToString(", ").takeIf { it.isNotBlank() }?.let { "People: $it" } ?: "")
+            LabeledRow("Date", detail.dateTaken)
+            LabeledRow("Location", detail.location)
+            LabeledRow("Resolution", detail.dimensions)
+            LabeledRow("Camera", detail.camera)
+            LabeledRow("Lens", detail.lens)
+            LabeledRow("Exposure", detail.exposure)
+            LabeledRow("People", detail.people.joinToString(", "))
         }
     }
 }
 
 @Composable
-private fun InfoLine(text: String) {
-    if (text.isBlank()) return
-    Text(text = text, color = Color.White, style = MaterialTheme.typography.bodyLarge)
+private fun LabeledRow(label: String, value: String) {
+    if (value.isBlank()) return
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(
+            text = label.uppercase(),
+            color = Color(0xFF6D7680),
+            style = MaterialTheme.typography.labelMedium,
+        )
+        Text(text = value, color = Color.White, style = MaterialTheme.typography.bodyLarge)
+    }
 }
