@@ -75,7 +75,9 @@ data class AssetDetailDto(
     val type: String = "IMAGE",
     val originalFileName: String = "",
     val fileCreatedAt: String = "",
-    val duration: String = "",
+    // NOTE: `duration` is intentionally omitted — Immich returns it as null for photos but as a
+    // number for videos, so a typed field mismatches and fails parsing (it's ignored via
+    // ignoreUnknownKeys). It's unused by the metadata panel anyway.
     val exifInfo: ExifDto? = null,
     val people: List<PersonRefDto> = emptyList(),
 )

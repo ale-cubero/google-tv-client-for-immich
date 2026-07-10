@@ -388,7 +388,7 @@ private fun VideoPage(player: ExoPlayer, poster: Asset) {
 
 @Composable
 private fun MetadataSidePanel(
-    detail: AssetDetail?,
+    detail: DetailState,
     asset: Asset?,
     position: Int,
     total: Int,
@@ -399,6 +399,7 @@ private fun MetadataSidePanel(
         asset?.isVideo == true -> "Video · " + if (isPlaying) "playing" else "paused"
         else -> "Photo"
     }
+    val loaded = (detail as? DetailState.Loaded)?.detail
     Column(
         modifier = modifier
             .background(Color(0xF00E1216))
@@ -407,7 +408,7 @@ private fun MetadataSidePanel(
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text(
-            text = detail?.fileName?.takeIf { it.isNotBlank() } ?: kind,
+            text = loaded?.fileName?.takeIf { it.isNotBlank() } ?: kind,
             color = Color.White,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold,
@@ -417,16 +418,20 @@ private fun MetadataSidePanel(
             color = Color(0xFF8A929A),
             style = MaterialTheme.typography.bodyMedium,
         )
-        if (detail == null) {
-            Text("Loading details…", color = Color(0xFF8A929A), style = MaterialTheme.typography.bodyMedium)
-        } else {
-            LabeledRow("Date", detail.dateTaken)
-            LabeledRow("Location", detail.location)
-            LabeledRow("Resolution", detail.dimensions)
-            LabeledRow("Camera", detail.camera)
-            LabeledRow("Lens", detail.lens)
-            LabeledRow("Exposure", detail.exposure)
-            LabeledRow("People", detail.people.joinToString(", "))
+        when (detail) {
+            is DetailState.Loading ->
+                Text("Loading details…", color = Color(0xFF8A929A), style = MaterialTheme.typography.bodyMedium)
+            is DetailState.Error ->
+                Text("Details unavailable", color = Color(0xFF8A929A), style = MaterialTheme.typography.bodyMedium)
+            is DetailState.Loaded -> {
+                LabeledRow("Date", detail.detail.dateTaken)
+                LabeledRow("Location", detail.detail.location)
+                LabeledRow("Resolution", detail.detail.dimensions)
+                LabeledRow("Camera", detail.detail.camera)
+                LabeledRow("Lens", detail.detail.lens)
+                LabeledRow("Exposure", detail.detail.exposure)
+                LabeledRow("People", detail.detail.people.joinToString(", "))
+            }
         }
     }
 }

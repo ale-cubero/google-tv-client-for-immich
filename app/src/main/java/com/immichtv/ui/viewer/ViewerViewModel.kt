@@ -39,16 +39,25 @@ class ViewerViewModel @Inject constructor(
         }
 
     private val detailCache = mutableMapOf<String, AssetDetail>()
-    private val _detail = MutableStateFlow<AssetDetail?>(null)
-    val detail: StateFlow<AssetDetail?> = _detail.asStateFlow()
+    private val _detail = MutableStateFlow<DetailState>(DetailState.Loading)
+    val detail: StateFlow<DetailState> = _detail.asStateFlow()
 
     /** Fetch (and cache) detail for the asset whose panel is being shown. */
     fun loadDetail(assetId: String) {
-        detailCache[assetId]?.let { _detail.value = it; return }
-        _detail.value = null
+        detailCache[assetId]?.let { _detail.value = DetailState.Loaded(it); return }
+        _detail.value = DetailState.Loading
         viewModelScope.launch {
-            runCatching { repository.getAssetDetail(assetId) }
-                .onSuccess { detailCache[assetId] = it; _detail.value = it }
+            _detail.value = runCatching { repository.getAssetDetail(assetId) }
+                .fold(
+                    onSuccess = { detailCache[assetId] = it; DetailState.Loaded(it) },
+                    onFailure = { DetailState.Error }, // surface failures instead of an endless spinner
+                )
         }
     }
+}
+
+sealed interface DetailState {
+    data object Loading : DetailState
+    data object Error : DetailState
+    data class Loaded(val detail: AssetDetail) : DetailState
 }
