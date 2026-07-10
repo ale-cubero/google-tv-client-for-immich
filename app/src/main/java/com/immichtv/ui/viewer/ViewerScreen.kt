@@ -147,20 +147,26 @@ private fun ViewerPager(
 
             override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
                 // Format (incl. color/HDR info) is available once the video renders.
-                player.videoFormat?.colorInfo?.let { videoColorInfo = it }
-                // A non-zero unapplied rotation means the current surface (SurfaceView) can't rotate
-                // this video — latch to force a TextureView. Never unlatch here (a TextureView
-                // reports 0, which would otherwise flip it back and loop).
-                if (videoSize.unappliedRotationDegrees != 0) videoNeedsTexture = true
+                val format = player.videoFormat
+                format?.colorInfo?.let { videoColorInfo = it }
+                // Route any video with source rotation metadata to a TextureView (which applies the
+                // rotation matrix reliably). We use the source Format.rotationDegrees rather than
+                // VideoSize.unappliedRotationDegrees because some decoders report 0 unapplied while
+                // still outputting the un-rotated buffer (portrait shown stretched in a landscape
+                // frame). Latch only — never unlatch here (reset happens on page change).
+                if ((format?.rotationDegrees ?: 0) != 0 || videoSize.unappliedRotationDegrees != 0) {
+                    videoNeedsTexture = true
+                }
             }
 
             override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
-                // The selected video track often carries colour info before the first frame renders.
-                tracks.groups
+                // The selected video track carries colour info and source rotation before the first
+                // frame renders — pick the surface (SurfaceView vs TextureView) as early as possible.
+                val format = tracks.groups
                     .firstOrNull { it.type == C.TRACK_TYPE_VIDEO && it.isSelected }
                     ?.let { group -> (0 until group.length).firstOrNull { group.isTrackSelected(it) }?.let { group.getTrackFormat(it) } }
-                    ?.colorInfo
-                    ?.let { videoColorInfo = it }
+                format?.colorInfo?.let { videoColorInfo = it }
+                if ((format?.rotationDegrees ?: 0) != 0) videoNeedsTexture = true
             }
 
             override fun onPlaybackStateChanged(state: Int) {
