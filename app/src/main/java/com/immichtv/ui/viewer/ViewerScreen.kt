@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -141,7 +142,16 @@ private fun ViewerPager(
 
             override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
                 // Format (incl. color/HDR info) is available once the video renders.
-                videoColorInfo = player.videoFormat?.colorInfo
+                player.videoFormat?.colorInfo?.let { videoColorInfo = it }
+            }
+
+            override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
+                // The selected video track often carries colour info before the first frame renders.
+                tracks.groups
+                    .firstOrNull { it.type == C.TRACK_TYPE_VIDEO && it.isSelected }
+                    ?.let { group -> (0 until group.length).firstOrNull { group.isTrackSelected(it) }?.let { group.getTrackFormat(it) } }
+                    ?.colorInfo
+                    ?.let { videoColorInfo = it }
             }
 
             override fun onPlaybackStateChanged(state: Int) {
