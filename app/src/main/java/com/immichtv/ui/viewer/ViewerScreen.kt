@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -384,6 +385,11 @@ private fun PhotoPage(asset: Asset) {
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 private fun VideoPage(player: ExoPlayer, poster: Asset) {
+    // Ordinary videos render on a SurfaceView for true HDR (HLG/PQ) passthrough; motion-photo clips
+    // render on a TextureView, which is needed to apply their display-rotation matrix (a SurfaceView
+    // renders those stretched). A TextureView tone-maps HDR to SDR, so it's used only where required.
+    val useTextureView = poster.hasMotion
+    val layout = if (useTextureView) R.layout.video_surface else R.layout.video_surface_hdr
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         AsyncImage(
             model = poster.previewUrl,
@@ -391,19 +397,21 @@ private fun VideoPage(player: ExoPlayer, poster: Asset) {
             contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize(),
         )
-        AndroidView(
-            factory = { ctx ->
-                // Inflated (not `PlayerView(ctx)`) so it uses a TextureView surface — required to
-                // apply the rotation flag on motion-photo clips correctly (avoids stretching).
-                (android.view.LayoutInflater.from(ctx)
-                    .inflate(R.layout.video_surface, null) as PlayerView).apply {
-                    setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                    this.player = player
-                }
-            },
-            update = { it.player = player },
-            modifier = Modifier.fillMaxSize(),
-        )
+        // key() so flipping surface type (video <-> motion clip) re-inflates the PlayerView, since a
+        // PlayerView's surface type is fixed at inflation and can't change afterwards.
+        key(useTextureView) {
+            AndroidView(
+                factory = { ctx ->
+                    (android.view.LayoutInflater.from(ctx)
+                        .inflate(layout, null) as PlayerView).apply {
+                        setBackgroundColor(android.graphics.Color.TRANSPARENT)
+                        this.player = player
+                    }
+                },
+                update = { it.player = player },
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
     }
 }
 
