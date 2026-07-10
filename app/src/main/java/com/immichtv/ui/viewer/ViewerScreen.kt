@@ -123,6 +123,10 @@ private fun ViewerPager(
     var motionPlaying by remember { mutableStateOf(false) }
     // Decoded video color info (for the HDR indicator); updated when a video renders.
     var videoColorInfo by remember { mutableStateOf<androidx.media3.common.ColorInfo?>(null) }
+    // Latched true when a video carries a rotation a SurfaceView can't apply (portrait clips), so it
+    // must render on a TextureView instead. One-way per page: a TextureView reports 0 unapplied
+    // rotation, which must not flip it back (that would loop). Reset on page change.
+    var videoNeedsTexture by remember { mutableStateOf(false) }
     // Per-direction tap vs hold tracking (hold = seek on video, tap = prev/next asset).
     var pendingTap by remember { mutableIntStateOf(0) } // -1 left, +1 right, 0 none
 
@@ -144,6 +148,10 @@ private fun ViewerPager(
             override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
                 // Format (incl. color/HDR info) is available once the video renders.
                 player.videoFormat?.colorInfo?.let { videoColorInfo = it }
+                // A non-zero unapplied rotation means the current surface (SurfaceView) can't rotate
+                // this video — latch to force a TextureView. Never unlatch here (a TextureView
+                // reports 0, which would otherwise flip it back and loop).
+                if (videoSize.unappliedRotationDegrees != 0) videoNeedsTexture = true
             }
 
             override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
@@ -181,6 +189,7 @@ private fun ViewerPager(
         val asset = assets.getOrNull(pagerState.settledPage) ?: return@LaunchedEffect
         motionPlaying = false
         videoColorInfo = null // reset; the listener fills it in when the new video renders
+        videoNeedsTexture = false // start every video on a SurfaceView (HDR); latch if rotation needs it
         if (asset.isVideo) {
             player.setMediaItem(MediaItem.fromUri(asset.videoUrl))
             player.prepare()
@@ -286,8 +295,8 @@ private fun ViewerPager(
                     val asset = assets[page]
                     val isCurrent = page == pagerState.currentPage
                     when {
-                        asset.isVideo && isCurrent -> VideoPage(player, poster = asset)
-                        asset.hasMotion && isCurrent && motionPlaying -> VideoPage(player, poster = asset)
+                        asset.isVideo && isCurrent -> VideoPage(player, poster = asset, needsTexture = videoNeedsTexture)
+                        asset.hasMotion && isCurrent && motionPlaying -> VideoPage(player, poster = asset, needsTexture = videoNeedsTexture)
                         else -> PhotoPage(asset)
                     }
                 }
@@ -384,11 +393,12 @@ private fun PhotoPage(asset: Asset) {
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
-private fun VideoPage(player: ExoPlayer, poster: Asset) {
+private fun VideoPage(player: ExoPlayer, poster: Asset, needsTexture: Boolean) {
     // Ordinary videos render on a SurfaceView for true HDR (HLG/PQ) passthrough; motion-photo clips
-    // render on a TextureView, which is needed to apply their display-rotation matrix (a SurfaceView
-    // renders those stretched). A TextureView tone-maps HDR to SDR, so it's used only where required.
-    val useTextureView = poster.hasMotion
+    // and rotated videos (portrait clips a SurfaceView can't rotate) render on a TextureView, which
+    // applies the rotation matrix. A TextureView tone-maps HDR to SDR, so it's used only where the
+    // geometry requires it.
+    val useTextureView = poster.hasMotion || needsTexture
     val layout = if (useTextureView) R.layout.video_surface else R.layout.video_surface_hdr
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         AsyncImage(
