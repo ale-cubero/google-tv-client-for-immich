@@ -31,6 +31,7 @@ import androidx.tv.material3.Card
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.immichtv.ui.common.AssetThumbnail
+import com.immichtv.ui.common.CardFocus
 import com.immichtv.ui.common.ErrorState
 import com.immichtv.domain.Asset
 
@@ -99,7 +100,12 @@ private fun CollectionGrid(title: String, assets: List<Asset>, onOpen: (Int) -> 
 
 @Composable
 private fun Cell(asset: Asset, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Card(onClick = onClick, modifier = modifier.aspectRatio(1f)) {
+    Card(
+        onClick = onClick,
+        border = CardFocus.border(),
+        scale = CardFocus.scale(),
+        modifier = modifier.aspectRatio(1f),
+    ) {
         AssetThumbnail(asset, modifier = Modifier.fillMaxSize())
     }
 }

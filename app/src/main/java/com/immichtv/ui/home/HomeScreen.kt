@@ -38,6 +38,7 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
 import com.immichtv.ui.common.AssetThumbnail
+import com.immichtv.ui.common.CardFocus
 import com.immichtv.ui.common.ErrorState
 import com.immichtv.domain.Album
 import com.immichtv.domain.Asset
@@ -181,7 +182,12 @@ private fun Rail(
 
 @Composable
 private fun AssetTile(asset: Asset, onClick: () -> Unit) {
-    Card(onClick = onClick, modifier = Modifier.size(180.dp)) {
+    Card(
+        onClick = onClick,
+        border = CardFocus.border(),
+        scale = CardFocus.scale(),
+        modifier = Modifier.size(180.dp),
+    ) {
         AssetThumbnail(asset, modifier = Modifier.fillMaxSize())
     }
 }
@@ -189,7 +195,12 @@ private fun AssetTile(asset: Asset, onClick: () -> Unit) {
 @Composable
 private fun AlbumTile(album: Album, onClick: () -> Unit) {
     Column(modifier = Modifier.width(200.dp)) {
-        Card(onClick = onClick, modifier = Modifier.size(200.dp)) {
+        Card(
+            onClick = onClick,
+            border = CardFocus.border(),
+            scale = CardFocus.scale(),
+            modifier = Modifier.size(200.dp),
+        ) {
             AsyncImage(
                 model = album.thumbnailUrl,
                 contentDescription = null,
@@ -219,7 +230,12 @@ private fun PersonTile(person: Person, onClick: () -> Unit) {
         modifier = Modifier.width(140.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Card(onClick = onClick, modifier = Modifier.size(140.dp)) {
+        Card(
+            onClick = onClick,
+            border = CardFocus.border(),
+            scale = CardFocus.scale(),
+            modifier = Modifier.size(140.dp),
+        ) {
             AsyncImage(
                 model = person.thumbnailUrl,
                 contentDescription = person.name,
@@ -240,7 +256,12 @@ private fun PersonTile(person: Person, onClick: () -> Unit) {
 
 @Composable
 private fun MemoryTile(memory: Memory, onClick: () -> Unit) {
-    Card(onClick = onClick, modifier = Modifier.width(280.dp).height(160.dp)) {
+    Card(
+        onClick = onClick,
+        border = CardFocus.border(),
+        scale = CardFocus.scale(),
+        modifier = Modifier.width(280.dp).height(160.dp),
+    ) {
         Box(modifier = Modifier.fillMaxSize().background(Color(0xFF20262C))) {
             memory.assets.firstOrNull()?.let { cover ->
                 AssetThumbnail(cover, modifier = Modifier.fillMaxSize())

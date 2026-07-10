@@ -1,6 +1,5 @@
 package com.immichtv.ui.timeline
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
@@ -43,12 +42,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.tv.material3.Border
 import androidx.tv.material3.Card
-import androidx.tv.material3.CardDefaults
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.immichtv.ui.common.AssetThumbnail
+import com.immichtv.ui.common.CardFocus
 import com.immichtv.ui.common.ErrorState
 import com.immichtv.domain.Asset
 import com.immichtv.domain.BucketMeta
@@ -176,11 +174,8 @@ private fun MonthHeader(label: String) {
 private fun ThumbnailCell(asset: Asset?, modifier: Modifier = Modifier, onClick: () -> Unit = {}) {
     Card(
         onClick = onClick,
-        border = CardDefaults.border(
-            focusedBorder = Border(
-                border = BorderStroke(3.dp, MaterialTheme.colorScheme.primary),
-            ),
-        ),
+        border = CardFocus.border(),
+        scale = CardFocus.scale(),
         modifier = modifier.aspectRatio(1f),
     ) {
         if (asset != null) {
