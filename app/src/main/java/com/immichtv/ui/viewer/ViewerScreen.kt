@@ -119,6 +119,8 @@ private fun ViewerPager(
     var slideshow by remember { mutableStateOf(false) }
     // A motion photo (live photo) is playing its clip over the still.
     var motionPlaying by remember { mutableStateOf(false) }
+    // Decoded video color info (for the HDR indicator); updated when a video renders.
+    var videoColorInfo by remember { mutableStateOf<androidx.media3.common.ColorInfo?>(null) }
     // Per-direction tap vs hold tracking (hold = seek on video, tap = prev/next asset).
     var pendingTap by remember { mutableIntStateOf(0) } // -1 left, +1 right, 0 none
 
@@ -135,6 +137,11 @@ private fun ViewerPager(
         val listener = object : Player.Listener {
             override fun onIsPlayingChanged(playing: Boolean) {
                 isPlaying = playing
+            }
+
+            override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
+                // Format (incl. color/HDR info) is available once the video renders.
+                videoColorInfo = player.videoFormat?.colorInfo
             }
 
             override fun onPlaybackStateChanged(state: Int) {
@@ -162,6 +169,7 @@ private fun ViewerPager(
     LaunchedEffect(pagerState.settledPage) {
         val asset = assets.getOrNull(pagerState.settledPage) ?: return@LaunchedEffect
         motionPlaying = false
+        videoColorInfo = null // reset; the listener fills it in when the new video renders
         if (asset.isVideo) {
             player.setMediaItem(MediaItem.fromUri(asset.videoUrl))
             player.prepare()
@@ -197,6 +205,8 @@ private fun ViewerPager(
     }
 
     val current = assets.getOrNull(pagerState.currentPage)
+    val context = LocalContext.current
+    val hdrLabel = if (current?.isVideo == true) VideoHdr.label(videoColorInfo, context) else null
 
     Box(
         modifier = Modifier
@@ -278,6 +288,7 @@ private fun ViewerPager(
                     position = pagerState.currentPage + 1,
                     total = assets.size,
                     isPlaying = isPlaying,
+                    hdr = hdrLabel,
                     modifier = Modifier.weight(0.36f).fillMaxHeight(),
                 )
             }
@@ -393,6 +404,7 @@ private fun MetadataSidePanel(
     position: Int,
     total: Int,
     isPlaying: Boolean,
+    hdr: String?,
     modifier: Modifier = Modifier,
 ) {
     val kind = when {
@@ -418,6 +430,8 @@ private fun MetadataSidePanel(
             color = Color(0xFF8A929A),
             style = MaterialTheme.typography.bodyMedium,
         )
+        // From the decoded video format + display state — independent of the Immich detail fetch.
+        LabeledRow("Dynamic range", hdr.orEmpty())
         when (detail) {
             is DetailState.Loading ->
                 Text("Loading details…", color = Color(0xFF8A929A), style = MaterialTheme.typography.bodyMedium)
