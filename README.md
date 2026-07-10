@@ -1,4 +1,4 @@
-# Immich TV
+# TV client for Immich
 
 A native **Android TV / Google TV** client for a self-hosted [Immich](https://immich.app) photo & video server. Built for the living-room: fast D‑pad navigation, hardware‑decoded video, and a **strictly read‑only** connection to your library.
 
@@ -69,7 +69,7 @@ adb connect <device-ip>:5555
 adb install -r app/build/outputs/apk/release/app-release.apk
 ```
 
-Launch **Immich TV** and enter your **server URL** and **API key** on the setup screen.
+Launch **TV client for Immich** and enter your **server URL** and **API key** on the setup screen.
 
 ### Release signing
 
@@ -86,7 +86,7 @@ keyPassword=…
 
 ## Status
 
-Feature‑complete for personal use and iterated against a real ~14k‑asset library. Screensaver triggering can only be verified on a real device (Settings → System → Screensaver → *Immich TV*).
+Feature‑complete for personal use and iterated against a real ~14k‑asset library. Screensaver triggering can only be verified on a real device (Settings → System → Screensaver → *TV client for Immich*).
 
 ## License
 
