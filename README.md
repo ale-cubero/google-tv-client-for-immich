@@ -110,7 +110,13 @@ keyPassword=…
 
 ## Status
 
-Feature‑complete for personal use and iterated against a real ~14k‑asset library. Screensaver triggering can only be verified on a real device (Settings → System → Screensaver → *TV client for Immich*).
+Actively used on a Google TV Streamer 4K against a real ~14k‑asset library. All the core screens — Home, timeline, albums & people, smart search, the photo/video viewer, and slideshow — are built and working, along with light/dark themes and hardware‑decoded playback (HDR included).
+
+It's a personal project, so there's no formal release process, versioned support, or issue triage — expect the occasional rough edge, and note a few things are inherently device‑dependent:
+
+- **Screensaver** — can only be exercised on real hardware (Settings → System → Screensaver → *TV client for Immich*).
+- **Smart search** — requires machine learning enabled on your Immich server.
+- **HDR passthrough** — depends on your TV and display pipeline.
 
 ## License
 
