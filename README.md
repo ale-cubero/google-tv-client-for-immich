@@ -114,9 +114,9 @@ Feature‑complete for personal use and iterated against a real ~14k‑asset lib
 
 ## License
 
-[MIT](LICENSE) © Alejandro Cubero.
+[GNU AGPL‑3.0](LICENSE) © 2026 Alejandro Cubero — the same license as the [Immich](https://immich.app) project this client is built for.
 
-This is an **unofficial** third‑party client and is **not affiliated with, endorsed by, or sponsored by the Immich project**. "Immich" and the Immich logo are property of their respective owners; this project uses its own icon and only references the Immich name descriptively. The MIT license covers this client's own source only — the Immich server is a separate project under its own (AGPL‑3.0) license.
+This is an **unofficial** third‑party client and is **not affiliated with, endorsed by, or sponsored by the Immich project**. "Immich" and the Immich logo are property of their respective owners; this project uses its own icon and only references the Immich name descriptively.
 
 ## Acknowledgements
 
