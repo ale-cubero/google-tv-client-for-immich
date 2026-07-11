@@ -4,6 +4,9 @@ package com.immichtv.domain
 data class ServerSettings(
     val baseUrl: String = "",
     val apiKey: String = "",
+    // Opt-in (off by default): trust self-signed/invalid TLS certificates and allow http://.
+    // For self-hosted Immich that often lacks a valid certificate or DNS record.
+    val allowInsecure: Boolean = false,
 ) {
     val isConfigured: Boolean get() = baseUrl.isNotBlank() && apiKey.isNotBlank()
 }

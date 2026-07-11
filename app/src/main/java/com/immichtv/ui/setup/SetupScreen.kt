@@ -2,10 +2,12 @@ package com.immichtv.ui.setup
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -87,6 +89,11 @@ fun SetupScreen(
                 mask = true,
             )
 
+            InsecureToggle(
+                checked = state.allowInsecure,
+                onToggle = { viewModel.onInsecureChange(!state.allowInsecure) },
+            )
+
             Button(
                 onClick = { viewModel.validateAndSave(onConfigured) },
                 enabled = !state.validating,
@@ -105,6 +112,42 @@ fun SetupScreen(
     }
 
     androidx.compose.runtime.LaunchedEffect(Unit) { urlFocus.requestFocus() }
+}
+
+/** D-pad-focusable checkbox row for opting into an insecure (self-signed / http://) connection. */
+@Composable
+private fun InsecureToggle(checked: Boolean, onToggle: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    val borderColor =
+        if (focused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.border
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .onFocusChanged { focused = it.isFocused }
+            .clickable(onClick = onToggle) // handles D-pad OK when focused
+            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+            .border(2.dp, borderColor, RoundedCornerShape(8.dp))
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+    ) {
+        Text(
+            text = if (checked) "☑" else "☐",
+            color = if (checked) MaterialTheme.colorScheme.primary else Color(0xFF9AA4AD),
+            fontSize = 26.sp,
+        )
+        Column(modifier = Modifier.padding(start = 14.dp)) {
+            Text(
+                text = "Allow insecure connection",
+                color = MaterialTheme.colorScheme.onBackground,
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            Text(
+                text = "Trust self-signed certificates and allow http:// — for self-hosted servers without a valid certificate. The API key may travel unencrypted.",
+                color = Color(0xFF9AA4AD),
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+    }
 }
 
 /** Minimal D-pad-focusable single-line text field (tv-material has no TextField). */

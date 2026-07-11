@@ -1,6 +1,7 @@
 package com.immichtv.data.prefs
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -36,6 +37,7 @@ class SettingsRepository @Inject constructor(
 
     private val keyUrl = stringPreferencesKey("server_url")
     private val keyApiKey = stringPreferencesKey("api_key")
+    private val keyInsecure = booleanPreferencesKey("allow_insecure")
 
     /** Latest settings, readable synchronously from an interceptor. */
     @Volatile
@@ -60,6 +62,7 @@ class SettingsRepository @Inject constructor(
         dataStore.edit {
             it[keyUrl] = settings.baseUrl
             it[keyApiKey] = KeystoreCrypto.encrypt(settings.apiKey)
+            it[keyInsecure] = settings.allowInsecure
         }
         snapshot = settings
     }
@@ -69,5 +72,6 @@ class SettingsRepository @Inject constructor(
         // Stored encrypted; a decrypt failure (corrupt/legacy value, missing key) reads as
         // "not configured" so the app falls back to the setup screen rather than crashing.
         apiKey = this[keyApiKey]?.let { runCatching { KeystoreCrypto.decrypt(it) }.getOrDefault("") }.orEmpty(),
+        allowInsecure = this[keyInsecure] ?: false,
     )
 }

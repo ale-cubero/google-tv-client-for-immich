@@ -16,6 +16,7 @@ import javax.inject.Inject
 data class SetupUiState(
     val url: String = "",
     val apiKey: String = "",
+    val allowInsecure: Boolean = false,
     val validating: Boolean = false,
     val error: String? = null,
 )
@@ -30,24 +31,28 @@ class SetupViewModel @Inject constructor(
         SetupUiState(
             url = settings.snapshot.baseUrl,
             apiKey = settings.snapshot.apiKey,
+            allowInsecure = settings.snapshot.allowInsecure,
         ),
     )
     val state: StateFlow<SetupUiState> = _state.asStateFlow()
 
     fun onUrlChange(value: String) = _state.update { it.copy(url = value, error = null) }
     fun onApiKeyChange(value: String) = _state.update { it.copy(apiKey = value, error = null) }
+    fun onInsecureChange(value: Boolean) = _state.update { it.copy(allowInsecure = value, error = null) }
 
     fun validateAndSave(onConfigured: () -> Unit) {
         val current = _state.value
-        // The API key is a bearer credential: only ever send it over TLS. The platform blocks
-        // cleartext anyway (targetSdk 35), so reject http:// up front with a clear message.
-        if (current.url.trim().startsWith("http://")) {
-            _state.update { it.copy(error = "Only https:// servers are supported — the API key must not travel unencrypted") }
+        // The API key is a bearer credential: by default it only travels over TLS, so reject
+        // http:// up front. The insecure opt-in (self-hosted servers without a valid cert) waives
+        // this — the user has explicitly accepted an unencrypted/untrusted connection.
+        if (!current.allowInsecure && current.url.trim().startsWith("http://")) {
+            _state.update { it.copy(error = "Only https:// servers are supported unless you enable an insecure connection below") }
             return
         }
         val normalized = ServerSettings(
-            baseUrl = normalizeBaseUrl(current.url),
+            baseUrl = normalizeBaseUrl(current.url, current.allowInsecure),
             apiKey = current.apiKey.trim(),
+            allowInsecure = current.allowInsecure,
         )
         if (!normalized.isConfigured) {
             _state.update { it.copy(error = "Enter both a server URL and an API key") }
@@ -78,10 +83,14 @@ class SetupViewModel @Inject constructor(
         }
     }
 
-    private fun normalizeBaseUrl(input: String): String {
+    private fun normalizeBaseUrl(input: String, allowInsecure: Boolean): String {
         var s = input.trim()
         if (s.isEmpty()) return s
-        if (!s.startsWith("http://") && !s.startsWith("https://")) s = "https://$s"
+        // Respect an explicit scheme; otherwise default to http:// for insecure (self-hosted, likely
+        // no TLS) and https:// otherwise.
+        if (!s.startsWith("http://") && !s.startsWith("https://")) {
+            s = if (allowInsecure) "http://$s" else "https://$s"
+        }
         return s.trimEnd('/')
     }
 }

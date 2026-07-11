@@ -1,6 +1,7 @@
 package com.immichtv.ui.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,19 +12,27 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -37,6 +46,7 @@ import androidx.tv.material3.Card
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
+import com.immichtv.BuildConfig
 import com.immichtv.ui.common.AssetThumbnail
 import com.immichtv.ui.common.CardFocus
 import com.immichtv.ui.common.ErrorState
@@ -54,6 +64,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    var showAbout by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -72,6 +83,99 @@ fun HomeScreen(
                 onOpenPerson = onOpenPerson,
             )
         }
+
+        // Small "About" affordance, overscan-safe in the top-right corner.
+        AboutButton(
+            onClick = { showAbout = true },
+            modifier = Modifier.align(Alignment.TopEnd).padding(top = 40.dp, end = 48.dp),
+        )
+        if (showAbout) AboutDialog(onDismiss = { showAbout = false })
+    }
+}
+
+@Composable
+private fun AboutButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    var focused by remember { mutableStateOf(false) }
+    val border = if (focused) Color.White else Color(0x66FFFFFF)
+    Box(
+        modifier = modifier
+            .onFocusChanged { focused = it.isFocused }
+            .clickable(onClick = onClick)
+            .background(Color(0x33000000), RoundedCornerShape(20.dp))
+            .border(if (focused) 2.dp else 1.dp, border, RoundedCornerShape(20.dp))
+            .padding(horizontal = 18.dp, vertical = 8.dp),
+    ) {
+        Text(
+            text = "ⓘ  About",
+            color = if (focused) Color.White else Color(0xFFB8C0C8),
+            style = MaterialTheme.typography.labelLarge,
+        )
+    }
+}
+
+@Composable
+private fun AboutDialog(onDismiss: () -> Unit) {
+    BackHandler(enabled = true, onBack = onDismiss)
+    val closeFocus = remember { FocusRequester() }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xCC000000))
+            .clickable(onClick = onDismiss), // click/OK outside the card dismisses
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier
+                .widthIn(max = 560.dp)
+                .background(Color(0xFF11161B), RoundedCornerShape(16.dp))
+                .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(16.dp))
+                .padding(horizontal = 40.dp, vertical = 36.dp),
+        ) {
+            Text(
+                text = "TV client for Immich",
+                color = Color.White,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = "Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                color = Color(0xFF9AA4AD),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            AboutRow("Developer", "Alejandro Cubero")
+            AboutRow("GitHub", "github.com/ale-cubero/google-tv-client-for-immich")
+            Text(
+                text = "A read-only Android TV client for a self-hosted Immich server. " +
+                    "Unofficial — not affiliated with the Immich project.",
+                color = Color(0xFF8A929A),
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier.padding(top = 10.dp).focusRequester(closeFocus),
+            ) { Text("Close") }
+        }
+    }
+    // Focus the Close button so the dialog is immediately dismissable with OK or Back.
+    LaunchedEffect(Unit) { runCatching { closeFocus.requestFocus() } }
+}
+
+@Composable
+private fun AboutRow(label: String, value: String) {
+    Row {
+        Text(
+            text = "$label:  ",
+            color = Color(0xFF6D7680),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        Text(
+            text = value,
+            color = Color.White,
+            style = MaterialTheme.typography.bodyMedium,
+        )
     }
 }
 
