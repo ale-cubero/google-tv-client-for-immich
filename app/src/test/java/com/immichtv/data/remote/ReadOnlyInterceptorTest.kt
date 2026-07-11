@@ -22,6 +22,7 @@ class ReadOnlyInterceptorTest {
     fun `allowlisted read POSTs are allowed`() {
         assertTrue(ReadOnlyInterceptor.isReadOnly("POST", "/api/auth/validateToken"))
         assertTrue(ReadOnlyInterceptor.isReadOnly("POST", "/api/search/metadata"))
+        assertTrue(ReadOnlyInterceptor.isReadOnly("POST", "/api/search/smart"))
         // still allowed behind a reverse-proxy sub-path
         assertTrue(ReadOnlyInterceptor.isReadOnly("POST", "/immich/api/search/metadata"))
     }

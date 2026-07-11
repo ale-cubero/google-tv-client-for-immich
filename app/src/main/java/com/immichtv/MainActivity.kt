@@ -22,6 +22,7 @@ import androidx.navigation.navArgument
 import com.immichtv.data.prefs.SettingsRepository
 import com.immichtv.ui.collection.CollectionScreen
 import com.immichtv.ui.home.HomeScreen
+import com.immichtv.ui.search.SearchScreen
 import com.immichtv.ui.setup.SetupScreen
 import com.immichtv.ui.theme.ImmichTvTheme
 import com.immichtv.ui.theme.ThemeMode
@@ -38,6 +39,7 @@ private object Routes {
     const val SETUP = "setup"
     const val HOME = "home"
     const val TIMELINE = "timeline"
+    const val SEARCH = "search"
     const val VIEWER = "viewer"
     const val COLLECTION = "collection/{source}/{id}?title={title}"
     fun collection(source: String, id: String, title: String) =
@@ -98,6 +100,7 @@ private fun AppContent(appViewModel: AppViewModel) {
         composable(Routes.HOME) {
             HomeScreen(
                 onOpenTimeline = { navController.navigate(Routes.TIMELINE) },
+                onOpenSearch = { navController.navigate(Routes.SEARCH) },
                 onOpenViewer = { navController.navigate(Routes.VIEWER) },
                 onOpenAlbum = { id, title -> navController.navigate(Routes.collection("album", id, title)) },
                 onOpenPerson = { id, name -> navController.navigate(Routes.collection("person", id, name)) },
@@ -113,6 +116,9 @@ private fun AppContent(appViewModel: AppViewModel) {
         }
         composable(Routes.TIMELINE) {
             TimelineScreen(onOpenViewer = { navController.navigate(Routes.VIEWER) })
+        }
+        composable(Routes.SEARCH) {
+            SearchScreen(onOpenViewer = { navController.navigate(Routes.VIEWER) })
         }
         composable(
             route = Routes.COLLECTION,

@@ -28,10 +28,12 @@ class ReadOnlyInterceptor @Inject constructor() : Interceptor {
     }
 
     internal companion object {
-        // POST endpoints that are reads, not writes.
+        // POST endpoints that are reads, not writes: token validation, metadata search, and
+        // smart/CLIP search (semantic "context" search + object recognition). All are query-only.
         private val READ_ONLY_POST_PATHS = listOf(
             "/api/auth/validateToken",
             "/api/search/metadata",
+            "/api/search/smart",
         )
 
         /** True only for requests that cannot mutate server state. */

@@ -64,6 +64,18 @@ data class SearchMetadataRequest(
     val page: Int = 1,
 )
 
+/**
+ * Immich smart (CLIP) search — semantic "context" search + object/scene recognition. Same response
+ * shape as metadata search. `visibility="timeline"` excludes hidden Motion Photo video clips.
+ */
+@Serializable
+data class SmartSearchRequest(
+    val query: String,
+    val visibility: String? = "timeline",
+    val size: Int = 100,
+    val page: Int = 1,
+)
+
 @Serializable
 data class SearchResponseDto(val assets: SearchAssetsDto = SearchAssetsDto())
 

@@ -5,6 +5,7 @@ import com.immichtv.data.remote.AssetDto
 import com.immichtv.data.remote.ExifDto
 import com.immichtv.data.remote.ImmichApi
 import com.immichtv.data.remote.SearchMetadataRequest
+import com.immichtv.data.remote.SmartSearchRequest
 import com.immichtv.data.remote.TimeBucketAssetsDto
 import com.immichtv.domain.Album
 import com.immichtv.domain.AlbumContent
@@ -93,6 +94,11 @@ class ImmichRepository @Inject constructor(
         api.searchMetadata(
             SearchMetadataRequest(personIds = listOf(personId), visibility = "timeline", size = 1000),
         ).assets.items.map { it.toDomain() }
+
+    /** Immich smart (CLIP) search: semantic "context" search + object/scene recognition. */
+    suspend fun searchSmart(query: String, limit: Int = 100): List<Asset> =
+        api.searchSmart(SmartSearchRequest(query = query.trim(), size = limit))
+            .assets.items.map { it.toDomain() }
 
     /** Full EXIF + people detail for the viewer's metadata panel. */
     suspend fun getAssetDetail(assetId: String): AssetDetail {

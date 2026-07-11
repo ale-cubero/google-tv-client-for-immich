@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Slideshow
 import androidx.compose.runtime.Composable
@@ -85,6 +86,7 @@ private const val REPO_URL = "https://github.com/ale-cubero/google-tv-client-for
 @Composable
 fun HomeScreen(
     onOpenTimeline: () -> Unit,
+    onOpenSearch: () -> Unit,
     onOpenViewer: () -> Unit,
     onOpenAlbum: (id: String, title: String) -> Unit,
     onOpenPerson: (id: String, name: String) -> Unit,
@@ -122,6 +124,7 @@ fun HomeScreen(
                 data = s.data,
                 openAssets = viewModel::openAssets,
                 onOpenTimeline = onOpenTimeline,
+                onOpenSearch = onOpenSearch,
                 onOpenViewer = onOpenViewer,
                 onOpenAlbum = onOpenAlbum,
                 onOpenPerson = onOpenPerson,
@@ -163,6 +166,7 @@ private fun HomeContent(
     data: HomeData,
     openAssets: (List<Asset>, Int) -> Unit,
     onOpenTimeline: () -> Unit,
+    onOpenSearch: () -> Unit,
     onOpenViewer: () -> Unit,
     onOpenAlbum: (String, String) -> Unit,
     onOpenPerson: (String, String) -> Unit,
@@ -192,6 +196,8 @@ private fun HomeContent(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Timeline")
                 }
+                Spacer(modifier = Modifier.weight(1f))
+                SearchBar(onClick = onOpenSearch, modifier = Modifier.width(420.dp))
                 Spacer(modifier = Modifier.weight(1f))
                 SettingsButton(onClick = onOpenSettings)
             }
@@ -259,6 +265,35 @@ private fun HomeContent(
 
     // Deterministic initial focus so the app always opens on the Timeline button.
     LaunchedEffect(Unit) { runCatching { timelineFocus.requestFocus() } }
+}
+
+@Composable
+private fun SearchBar(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    var focused by remember { mutableStateOf(false) }
+    val border = if (focused) MaterialTheme.colorScheme.primary else AppColors.chromeBorder
+    val fg = if (focused) MaterialTheme.colorScheme.onBackground else AppColors.onChrome
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = modifier
+            .onFocusChanged { focused = it.isFocused }
+            .clickable(onClick = onClick)
+            .background(AppColors.chromeBg, RoundedCornerShape(22.dp))
+            .border(if (focused) 2.dp else 1.dp, border, RoundedCornerShape(22.dp))
+            .padding(horizontal = 20.dp, vertical = 11.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Search,
+            contentDescription = "Search",
+            tint = fg,
+            modifier = Modifier.size(20.dp),
+        )
+        Text(
+            text = "Search your photos and videos",
+            color = fg,
+            style = MaterialTheme.typography.bodyLarge,
+        )
+    }
 }
 
 @Composable

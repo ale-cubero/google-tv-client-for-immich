@@ -45,4 +45,8 @@ interface ImmichApi {
 
     @POST("api/search/metadata")
     suspend fun searchMetadata(@Body body: SearchMetadataRequest): SearchResponseDto
+
+    // Smart/CLIP search — semantic context + object recognition. Non-mutating read (allowlisted).
+    @POST("api/search/smart")
+    suspend fun searchSmart(@Body body: SmartSearchRequest): SearchResponseDto
 }
