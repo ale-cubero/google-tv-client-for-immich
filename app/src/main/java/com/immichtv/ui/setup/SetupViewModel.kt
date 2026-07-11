@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.immichtv.data.ImmichRepository
 import com.immichtv.data.prefs.SettingsRepository
 import com.immichtv.domain.ServerSettings
+import com.immichtv.ui.common.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -71,13 +72,7 @@ class SetupViewModel @Inject constructor(
                     onConfigured()
                 },
                 onFailure = { e ->
-                    _state.update {
-                        it.copy(
-                            validating = false,
-                            error = e.message?.let { m -> "Could not connect: $m" }
-                                ?: "Could not connect to server",
-                        )
-                    }
+                    _state.update { it.copy(validating = false, error = e.toUserMessage()) }
                 },
             )
         }

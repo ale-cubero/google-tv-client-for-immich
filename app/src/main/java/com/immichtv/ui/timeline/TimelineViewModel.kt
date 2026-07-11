@@ -8,6 +8,7 @@ import com.immichtv.data.ImmichRepository
 import com.immichtv.data.ViewerQueue
 import com.immichtv.domain.Asset
 import com.immichtv.domain.BucketMeta
+import com.immichtv.ui.common.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -60,7 +61,7 @@ class TimelineViewModel @Inject constructor(
                     _state.value = TimelineUiState.Ready(buckets)
                 },
                 onFailure = { e ->
-                    _state.value = TimelineUiState.Error(e.message ?: "Failed to load timeline")
+                    _state.value = TimelineUiState.Error(e.toUserMessage())
                 },
             )
         }

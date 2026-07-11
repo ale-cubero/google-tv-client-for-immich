@@ -9,6 +9,7 @@ import com.immichtv.domain.Album
 import com.immichtv.domain.Asset
 import com.immichtv.domain.Memory
 import com.immichtv.domain.Person
+import com.immichtv.ui.common.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,22 +50,36 @@ class HomeViewModel @Inject constructor(
         _state.value = HomeUiState.Loading
         viewModelScope.launch {
             // Fetch every rail in parallel; a single rail failing just leaves it empty.
-            val memories = async { runCatching { repository.getMemories() }.getOrDefault(emptyList()) }
-            val recent = async { runCatching { repository.getRecentAssets() }.getOrDefault(emptyList()) }
-            val albums = async { runCatching { repository.getAlbums() }.getOrDefault(emptyList()) }
-            val people = async { runCatching { repository.getPeople() }.getOrDefault(emptyList()) }
-            val videos = async { runCatching { repository.getVideos() }.getOrDefault(emptyList()) }
+            val memories = async { runCatching { repository.getMemories() } }
+            val recent = async { runCatching { repository.getRecentAssets() } }
+            val albums = async { runCatching { repository.getAlbums() } }
+            val people = async { runCatching { repository.getPeople() } }
+            val videos = async { runCatching { repository.getVideos() } }
 
-            val data = HomeData(
-                memories = memories.await(),
-                recent = recent.await(),
-                albums = albums.await(),
-                people = people.await(),
-                videos = videos.await(),
-            )
-            _state.value =
-                if (data == HomeData()) HomeUiState.Error("Could not load your library")
-                else HomeUiState.Ready(data)
+            val memoriesR = memories.await()
+            val recentR = recent.await()
+            val albumsR = albums.await()
+            val peopleR = people.await()
+            val videosR = videos.await()
+            val results = listOf(memoriesR, recentR, albumsR, peopleR, videosR)
+
+            // Every rail failing means the server is unreachable (offline / network) or the key is
+            // bad — show an actionable error with Retry. A partial failure just leaves that rail empty;
+            // a reachable-but-empty library shows an (empty) Home rather than a false error.
+            val firstFailure = results.firstOrNull { it.isFailure }?.exceptionOrNull()
+            _state.value = if (results.all { it.isFailure } && firstFailure != null) {
+                HomeUiState.Error(firstFailure.toUserMessage())
+            } else {
+                HomeUiState.Ready(
+                    HomeData(
+                        memories = memoriesR.getOrDefault(emptyList()),
+                        recent = recentR.getOrDefault(emptyList()),
+                        albums = albumsR.getOrDefault(emptyList()),
+                        people = peopleR.getOrDefault(emptyList()),
+                        videos = videosR.getOrDefault(emptyList()),
+                    ),
+                )
+            }
         }
     }
 

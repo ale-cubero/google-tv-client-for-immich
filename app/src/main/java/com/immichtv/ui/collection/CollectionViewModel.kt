@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.immichtv.data.ImmichRepository
 import com.immichtv.data.ViewerQueue
 import com.immichtv.domain.Asset
+import com.immichtv.ui.common.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -58,7 +59,7 @@ class CollectionViewModel @Inject constructor(
                     _state.value = CollectionUiState.Ready(title, assets)
                 },
                 onFailure = { e ->
-                    _state.value = CollectionUiState.Error(e.message ?: "Failed to load")
+                    _state.value = CollectionUiState.Error(e.toUserMessage())
                 },
             )
         }

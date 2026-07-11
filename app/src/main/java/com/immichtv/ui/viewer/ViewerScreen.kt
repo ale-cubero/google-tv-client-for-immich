@@ -127,6 +127,8 @@ private fun ViewerPager(
     // must render on a TextureView instead. One-way per page: a TextureView reports 0 unapplied
     // rotation, which must not flip it back (that would loop). Reset on page change.
     var videoNeedsTexture by remember { mutableStateOf(false) }
+    // Set when ExoPlayer can't load/play a video (e.g. server went offline mid-session).
+    var videoError by remember { mutableStateOf(false) }
     // Per-direction tap vs hold tracking (hold = seek on video, tap = prev/next asset).
     var pendingTap by remember { mutableIntStateOf(0) } // -1 left, +1 right, 0 none
 
@@ -177,6 +179,14 @@ private fun ViewerPager(
                     asset?.hasMotion == true -> motionPlaying = false // show the still
                 }
             }
+
+            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                // Server offline / network drop / undecodable stream: surface it instead of a frozen
+                // poster. In a slideshow, keep moving so one bad video doesn't stall the show.
+                videoError = true
+                motionPlaying = false
+                if (slideshowNow) advanceNow()
+            }
         }
         player.addListener(listener)
         onDispose { player.removeListener(listener) }
@@ -194,6 +204,7 @@ private fun ViewerPager(
     LaunchedEffect(pagerState.settledPage) {
         val asset = assets.getOrNull(pagerState.settledPage) ?: return@LaunchedEffect
         motionPlaying = false
+        videoError = false
         videoColorInfo = null // reset; the listener fills it in when the new video renders
         videoNeedsTexture = false // start every video on a SurfaceView (HDR); latch if rotation needs it
         if (asset.isVideo) {
@@ -333,7 +344,7 @@ private fun ViewerPager(
             )
         }
 
-        if (current?.hasMotion == true) {
+        if (current?.hasMotion == true && !videoError) {
             Text(
                 text = if (motionPlaying) "◉ LIVE" else "◉ LIVE  ·  OK to play",
                 color = Color.White,
@@ -343,6 +354,19 @@ private fun ViewerPager(
                     .padding(24.dp)
                     .background(Color(0x88000000))
                     .padding(horizontal = 12.dp, vertical = 6.dp),
+            )
+        }
+
+        if (videoError && current?.isVideo == true) {
+            Text(
+                text = "⚠  Can't play this video.\nThe server may be offline or unreachable.",
+                color = Color.White,
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .background(Color(0xCC000000), androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
+                    .padding(horizontal = 28.dp, vertical = 20.dp),
             )
         }
     }

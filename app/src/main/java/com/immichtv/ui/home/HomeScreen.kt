@@ -144,7 +144,7 @@ private fun SettingsMenu(
             verticalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier
                 .padding(top = 84.dp, end = 48.dp)
-                .widthIn(min = 280.dp)
+                .width(320.dp)
                 .background(Color(0xFF11161B), RoundedCornerShape(14.dp))
                 .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(14.dp))
                 .padding(10.dp),
