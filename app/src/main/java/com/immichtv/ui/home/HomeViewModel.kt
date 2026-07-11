@@ -15,6 +15,7 @@ import com.immichtv.domain.Memory
 import com.immichtv.domain.Person
 import com.immichtv.domain.SlideshowPrefs
 import com.immichtv.ui.common.toUserMessage
+import com.immichtv.ui.theme.ThemeMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -57,6 +58,13 @@ class HomeViewModel @Inject constructor(
 
     val slideshowPrefs: StateFlow<SlideshowPrefs> =
         settings.slideshowPrefs.stateIn(viewModelScope, SharingStarted.Eagerly, SlideshowPrefs())
+
+    val themeMode: StateFlow<ThemeMode> =
+        settings.themeMode.stateIn(viewModelScope, SharingStarted.Eagerly, ThemeMode.DARK)
+
+    fun setThemeMode(mode: ThemeMode) {
+        viewModelScope.launch { settings.saveThemeMode(mode) }
+    }
 
     private var loadedAt = 0L
 

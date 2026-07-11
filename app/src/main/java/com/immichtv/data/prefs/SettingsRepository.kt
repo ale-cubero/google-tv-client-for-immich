@@ -9,6 +9,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.immichtv.data.crypto.KeystoreCrypto
 import com.immichtv.domain.ServerSettings
 import com.immichtv.domain.SlideshowPrefs
+import com.immichtv.ui.theme.ThemeMode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -42,6 +43,7 @@ class SettingsRepository @Inject constructor(
     private val keyInsecure = booleanPreferencesKey("allow_insecure")
     private val keySlideshowInterval = intPreferencesKey("slideshow_interval_s")
     private val keySlideshowShuffle = booleanPreferencesKey("slideshow_shuffle")
+    private val keyThemeMode = stringPreferencesKey("theme_mode")
 
     /** Latest settings, readable synchronously from an interceptor. */
     @Volatile
@@ -74,6 +76,17 @@ class SettingsRepository @Inject constructor(
             it[keySlideshowInterval] = prefs.intervalSeconds
             it[keySlideshowShuffle] = prefs.shuffle
         }
+    }
+
+    val themeMode: Flow<ThemeMode> = dataStore.data.map {
+        when (it[keyThemeMode]) {
+            ThemeMode.LIGHT.name -> ThemeMode.LIGHT
+            else -> ThemeMode.DARK // default & any legacy/unknown value
+        }
+    }
+
+    suspend fun saveThemeMode(mode: ThemeMode) {
+        dataStore.edit { it[keyThemeMode] = mode.name }
     }
 
     /** Wipe all persisted server settings (logout) and reset the in-memory snapshot. */

@@ -7,10 +7,13 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -21,10 +24,14 @@ import com.immichtv.ui.collection.CollectionScreen
 import com.immichtv.ui.home.HomeScreen
 import com.immichtv.ui.setup.SetupScreen
 import com.immichtv.ui.theme.ImmichTvTheme
+import com.immichtv.ui.theme.ThemeMode
 import com.immichtv.ui.timeline.TimelineScreen
 import com.immichtv.ui.viewer.ViewerScreen
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
 private object Routes {
@@ -42,23 +49,31 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            ImmichTvTheme {
-                AppRoot()
-            }
+            AppRoot()
         }
     }
 }
 
-/** Decides the first screen based on whether the server is already configured. */
+/** Decides the first screen based on whether the server is already configured, and the theme. */
 @HiltViewModel
 class AppViewModel @Inject constructor(
     settings: SettingsRepository,
 ) : ViewModel() {
     val startConfigured: Boolean = settings.snapshot.isConfigured
+    val themeMode: StateFlow<ThemeMode> =
+        settings.themeMode.stateIn(viewModelScope, SharingStarted.Eagerly, ThemeMode.DARK)
 }
 
 @Composable
 private fun AppRoot(appViewModel: AppViewModel = hiltViewModel()) {
+    val themeMode by appViewModel.themeMode.collectAsStateWithLifecycle()
+    ImmichTvTheme(mode = themeMode) {
+        AppContent(appViewModel)
+    }
+}
+
+@Composable
+private fun AppContent(appViewModel: AppViewModel) {
     val navController = rememberNavController()
     val start = if (appViewModel.startConfigured) Routes.HOME else Routes.SETUP
 

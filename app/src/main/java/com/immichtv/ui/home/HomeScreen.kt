@@ -25,7 +25,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Slideshow
@@ -69,6 +72,7 @@ import com.immichtv.ui.common.ErrorState
 import com.immichtv.ui.common.LoadingState
 import com.immichtv.ui.common.QrCode
 import com.immichtv.ui.theme.AppColors
+import com.immichtv.ui.theme.ThemeMode
 import com.immichtv.domain.Album
 import com.immichtv.domain.Asset
 import com.immichtv.domain.Memory
@@ -89,9 +93,11 @@ fun HomeScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val slideshowPrefs by viewModel.slideshowPrefs.collectAsStateWithLifecycle()
+    val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     var showMenu by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
     var showSlideshowSettings by remember { mutableStateOf(false) }
+    var showAppearance by remember { mutableStateOf(false) }
 
     // Home stays on the back stack for the whole session — refresh stale data when it resurfaces.
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -126,10 +132,18 @@ fun HomeScreen(
             SettingsMenu(
                 onChangeServer = { showMenu = false; onChangeServer() },
                 onRefresh = { showMenu = false; viewModel.load() },
+                onAppearance = { showMenu = false; showAppearance = true },
                 onSlideshow = { showMenu = false; showSlideshowSettings = true },
                 onLogout = { showMenu = false; viewModel.logout(onLoggedOut) },
                 onAbout = { showMenu = false; showAbout = true },
                 onDismiss = { showMenu = false },
+            )
+        }
+        if (showAppearance) {
+            AppearanceDialog(
+                mode = themeMode,
+                onSelect = viewModel::setThemeMode,
+                onDismiss = { showAppearance = false },
             )
         }
         if (showSlideshowSettings) {
@@ -248,26 +262,27 @@ private fun HomeContent(
 @Composable
 private fun SettingsButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
     var focused by remember { mutableStateOf(false) }
-    val border = if (focused) Color.White else Color(0x66FFFFFF)
+    val border = if (focused) MaterialTheme.colorScheme.primary else AppColors.chromeBorder
+    val fg = if (focused) MaterialTheme.colorScheme.onBackground else AppColors.onChrome
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier
             .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = onClick)
-            .background(Color(0x33000000), RoundedCornerShape(20.dp))
+            .background(AppColors.chromeBg, RoundedCornerShape(20.dp))
             .border(if (focused) 2.dp else 1.dp, border, RoundedCornerShape(20.dp))
             .padding(horizontal = 18.dp, vertical = 8.dp),
     ) {
         Icon(
             imageVector = Icons.Filled.Settings,
             contentDescription = null,
-            tint = if (focused) Color.White else Color(0xFFB8C0C8),
+            tint = fg,
             modifier = Modifier.size(16.dp),
         )
         Text(
             text = "Settings",
-            color = if (focused) Color.White else Color(0xFFB8C0C8),
+            color = fg,
             style = MaterialTheme.typography.labelLarge,
         )
     }
@@ -277,6 +292,7 @@ private fun SettingsButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
 private fun SettingsMenu(
     onChangeServer: () -> Unit,
     onRefresh: () -> Unit,
+    onAppearance: () -> Unit,
     onSlideshow: () -> Unit,
     onLogout: () -> Unit,
     onAbout: () -> Unit,
@@ -287,7 +303,7 @@ private fun SettingsMenu(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0x99000000))
+            .background(AppColors.scrim)
             .clickable(onClick = onDismiss), // OK/click outside the panel dismisses
         contentAlignment = Alignment.TopEnd,
     ) {
@@ -295,13 +311,14 @@ private fun SettingsMenu(
             verticalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier
                 .padding(top = 84.dp, end = 48.dp)
-                .width(340.dp)
+                .width(360.dp)
                 .background(AppColors.panel, RoundedCornerShape(14.dp))
                 .border(1.dp, AppColors.outline, RoundedCornerShape(14.dp))
                 .padding(10.dp),
         ) {
             MenuItem("Change server", Icons.Filled.Dns, Modifier.focusRequester(firstItem), onChangeServer)
             MenuItem("Refresh", Icons.Filled.Refresh, onClick = onRefresh)
+            MenuItem("Appearance", Icons.Filled.Palette, onClick = onAppearance)
             MenuItem("Slideshow settings", Icons.Filled.Slideshow, onClick = onSlideshow)
             MenuItem("Logout", Icons.AutoMirrored.Filled.Logout, onClick = onLogout)
             MenuItem("About", Icons.Filled.Info, onClick = onAbout)
@@ -326,20 +343,21 @@ private fun MenuItem(
             .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = onClick)
             .background(
-                if (focused) Color(0xFF2A333B) else Color.Transparent,
+                if (focused) AppColors.menuFocus else Color.Transparent,
                 RoundedCornerShape(8.dp),
             )
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
+        val fg = if (focused) MaterialTheme.colorScheme.onBackground else AppColors.textSecondary
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = if (focused) Color.White else AppColors.textSecondary,
+            tint = fg,
             modifier = Modifier.size(20.dp),
         )
         Text(
             text = text,
-            color = if (focused) Color.White else Color(0xFFB8C0C8),
+            color = fg,
             style = MaterialTheme.typography.bodyLarge,
         )
     }
@@ -370,7 +388,7 @@ private fun SlideshowSettingsDialog(
         ) {
             Text(
                 text = "Slideshow",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -418,6 +436,95 @@ private fun SlideshowSettingsDialog(
 }
 
 @Composable
+private fun AppearanceDialog(
+    mode: ThemeMode,
+    onSelect: (ThemeMode) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    BackHandler(enabled = true, onBack = onDismiss)
+    val firstFocus = remember { FocusRequester() }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(AppColors.scrim)
+            .clickable(onClick = onDismiss),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier
+                .widthIn(max = 520.dp)
+                .background(AppColors.panel, RoundedCornerShape(16.dp))
+                .border(1.dp, AppColors.outline, RoundedCornerShape(16.dp))
+                .padding(horizontal = 36.dp, vertical = 30.dp),
+        ) {
+            Text(
+                text = "Appearance",
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = "Theme",
+                color = AppColors.textSecondary,
+                style = MaterialTheme.typography.labelLarge,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                IconOptionChip(
+                    label = "Dark",
+                    icon = Icons.Filled.DarkMode,
+                    selected = mode == ThemeMode.DARK,
+                    modifier = Modifier.focusRequester(firstFocus),
+                    onClick = { onSelect(ThemeMode.DARK) },
+                )
+                IconOptionChip(
+                    label = "Light",
+                    icon = Icons.Filled.LightMode,
+                    selected = mode == ThemeMode.LIGHT,
+                    onClick = { onSelect(ThemeMode.LIGHT) },
+                )
+            }
+            Button(onClick = onDismiss) { Text("Done") }
+        }
+    }
+    LaunchedEffect(Unit) { runCatching { firstFocus.requestFocus() } }
+}
+
+@Composable
+private fun IconOptionChip(
+    label: String,
+    icon: ImageVector,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    var focused by remember { mutableStateOf(false) }
+    val bg = when {
+        selected -> MaterialTheme.colorScheme.primary
+        focused -> AppColors.menuFocus
+        else -> Color.Transparent
+    }
+    val fg = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier
+            .onFocusChanged { focused = it.isFocused }
+            .clickable(onClick = onClick)
+            .background(bg, RoundedCornerShape(18.dp))
+            .border(
+                width = if (focused) 2.dp else 1.dp,
+                color = if (focused) MaterialTheme.colorScheme.primary else AppColors.outline,
+                shape = RoundedCornerShape(18.dp),
+            )
+            .padding(horizontal = 18.dp, vertical = 10.dp),
+    ) {
+        Icon(imageVector = icon, contentDescription = null, tint = fg, modifier = Modifier.size(18.dp))
+        Text(text = label, color = fg, style = MaterialTheme.typography.labelLarge)
+    }
+}
+
+@Composable
 private fun OptionChip(
     label: String,
     selected: Boolean,
@@ -427,10 +534,10 @@ private fun OptionChip(
     var focused by remember { mutableStateOf(false) }
     val bg = when {
         selected -> MaterialTheme.colorScheme.primary
-        focused -> Color(0xFF2A333B)
+        focused -> AppColors.menuFocus
         else -> Color.Transparent
     }
-    val fg = if (selected) MaterialTheme.colorScheme.onPrimary else Color.White
+    val fg = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
     Box(
         modifier = modifier
             .onFocusChanged { focused = it.isFocused }
@@ -438,7 +545,7 @@ private fun OptionChip(
             .background(bg, RoundedCornerShape(18.dp))
             .border(
                 width = if (focused) 2.dp else 1.dp,
-                color = if (focused) Color.White else AppColors.outline,
+                color = if (focused) MaterialTheme.colorScheme.primary else AppColors.outline,
                 shape = RoundedCornerShape(18.dp),
             )
             .padding(horizontal = 18.dp, vertical = 8.dp),
@@ -474,7 +581,7 @@ private fun AboutDialog(onDismiss: () -> Unit) {
             ) {
                 Text(
                     text = "TV client for Immich",
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -521,7 +628,7 @@ private fun AboutRow(label: String, value: String) {
         )
         Text(
             text = value,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onSurface,
             style = MaterialTheme.typography.bodyMedium,
         )
     }

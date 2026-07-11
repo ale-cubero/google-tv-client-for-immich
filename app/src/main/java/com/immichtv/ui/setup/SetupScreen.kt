@@ -206,7 +206,7 @@ private fun TvTextField(
             singleLine = true,
             // Mask the API key so it isn't exposed on screen / in screenshots.
             visualTransformation = if (mask) PasswordVisualTransformation() else VisualTransformation.None,
-            textStyle = TextStyle(color = Color.White, fontSize = 20.sp),
+            textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = 20.sp),
             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
             keyboardOptions = KeyboardOptions(
                 keyboardType = keyboardType,

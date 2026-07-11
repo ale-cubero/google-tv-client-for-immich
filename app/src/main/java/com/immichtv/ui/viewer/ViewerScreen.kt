@@ -73,6 +73,8 @@ import com.immichtv.R
 import com.immichtv.domain.Asset
 import com.immichtv.ui.common.Spinner
 import com.immichtv.ui.theme.AppColors
+import com.immichtv.ui.theme.ImmichTvTheme
+import com.immichtv.ui.theme.ThemeMode
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -85,6 +87,14 @@ private const val POSITION_CHIP_MS = 2_000L
 fun ViewerScreen(
     viewModel: ViewerViewModel = hiltViewModel(),
 ) {
+    // Full-screen media viewer: always dark, regardless of the app's light/dark setting.
+    ImmichTvTheme(mode = ThemeMode.DARK) {
+        ViewerContent(viewModel)
+    }
+}
+
+@Composable
+private fun ViewerContent(viewModel: ViewerViewModel) {
     Box(
         modifier = Modifier
             .fillMaxSize()
