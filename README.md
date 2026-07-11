@@ -4,6 +4,17 @@ A native **Android TV / Google TV** client for a self-hosted [Immich](https://im
 
 > Personal project, sideloaded to a Google TV Streamer — no Play Store. Not affiliated with the Immich project.
 
+## Features
+
+- 🖼️ **Browse your whole library** — a Home screen of memories and rails, a fast month‑by‑month timeline, and album & people views.
+- ⚡ **Smooth on huge libraries** — buttery scrolling of tens of thousands of photos, with a year scrubber to jump across the years instantly.
+- ▶️ **Photo & video viewer** — full‑screen playback with hardware decoding, **HDR** support, and Motion Photos (Samsung/Apple/Google live photos).
+- 🎞️ **Slideshow & screensaver** — turn any view into a slideshow, or let the app be your TV's screensaver.
+- 🎨 **Light & dark themes** — styled after Immich's own colors.
+- 🔐 **Read‑only & private** — the app can never modify your server; your API key is encrypted on‑device.
+- 🏠 **Self‑hosting friendly** — an optional insecure mode for servers with self‑signed certificates or no valid certificate.
+- 🕹️ **Made for the remote** — every screen is fully operable with just **D‑pad + OK + Back**.
+
 ## Screenshots
 
 **Home** — memories, recent, albums, people, and videos rails
@@ -17,7 +28,7 @@ A native **Android TV / Google TV** client for a self-hosted [Immich](https://im
 
 <sub>Screenshots taken against the public <a href="https://demo.immich.app">Immich demo library</a> — no personal data.</sub>
 
-## Features
+## In detail
 
 - **Home** — an "On this day" memories row plus Recent, Albums, People, and Videos rails, and a Settings menu (change server, refresh, slideshow settings, logout, about).
 - **Timeline** — the whole library in one smooth grid, driven by Immich's month "buckets": all month boundaries are known up front, each month's assets load lazily as you scroll, with prefetch and an LRU that evicts far‑off months. A year scrubber on the right edge jumps across a multi‑year library instantly (and always shows the year you're in).
