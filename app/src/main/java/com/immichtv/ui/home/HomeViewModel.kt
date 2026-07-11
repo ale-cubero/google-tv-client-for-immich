@@ -1,10 +1,14 @@
 package com.immichtv.ui.home
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import coil3.SingletonImageLoader
+import coil3.PlatformContext
 import com.immichtv.data.ImmichRepository
 import com.immichtv.data.ViewerQueue
 import com.immichtv.data.prefs.SettingsRepository
+import dagger.hilt.android.qualifiers.ApplicationContext
 import com.immichtv.domain.Album
 import com.immichtv.domain.Asset
 import com.immichtv.domain.Memory
@@ -12,6 +16,7 @@ import com.immichtv.domain.Person
 import com.immichtv.domain.SlideshowPrefs
 import com.immichtv.ui.common.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -19,6 +24,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /** Home data older than this is re-fetched when the screen comes back to the foreground. */
@@ -43,6 +49,7 @@ class HomeViewModel @Inject constructor(
     private val repository: ImmichRepository,
     private val viewerQueue: ViewerQueue,
     private val settings: SettingsRepository,
+    @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
@@ -109,10 +116,22 @@ class HomeViewModel @Inject constructor(
     /** Stage an asset list for the viewer before navigating to it. */
     fun openAssets(assets: List<Asset>, index: Int) = viewerQueue.set(assets, index)
 
-    /** Clear stored server URL + API key, then invoke [onDone] to navigate back to setup. */
+    /**
+     * Clear stored server URL + API key AND all cached media (Coil memory + disk cache), so
+     * thumbnails/previews of the library don't outlive the session on disk. Then [onDone]
+     * navigates back to setup.
+     */
     fun logout(onDone: () -> Unit) {
         viewModelScope.launch {
             settings.clear()
+            viewerQueue.set(emptyList(), 0) // drop any staged asset list
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    val loader = SingletonImageLoader.get(appContext as PlatformContext)
+                    loader.memoryCache?.clear()
+                    loader.diskCache?.clear()
+                }
+            }
             onDone()
         }
     }

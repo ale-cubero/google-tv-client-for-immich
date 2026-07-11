@@ -11,18 +11,23 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.serialization.json.Json
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
+import java.net.Socket
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 import javax.net.ssl.HostnameVerifier
 import javax.net.ssl.SSLContext
+import javax.net.ssl.SSLEngine
+import javax.net.ssl.SSLSocket
 import javax.net.ssl.TrustManagerFactory
+import javax.net.ssl.X509ExtendedTrustManager
 import javax.net.ssl.X509TrustManager
 
 @Module
@@ -72,7 +77,13 @@ object NetworkModule {
      * Installs a TLS trust manager + hostname verifier that consult the *live* `allowInsecure`
      * setting on each connection. When the user has NOT opted in, both delegate to the platform
      * default (normal certificate + hostname validation). When they have (self-hosted Immich with a
-     * self-signed cert or no DNS record), certificate and hostname checks are skipped.
+     * self-signed cert or no DNS record), certificate and hostname checks are skipped — but ONLY
+     * for the configured server's host: a redirect or any other request to a different host still
+     * gets full platform validation, so the opt-in cannot be leveraged to MITM third-party hosts.
+     *
+     * Host scoping uses the [X509ExtendedTrustManager] socket/engine callbacks (which carry the
+     * peer host — Android's Conscrypt always invokes these). The host-less legacy callback keeps
+     * the unscoped behaviour as a fallback for stacks that provide no peer information.
      *
      * Reading `settings.snapshot` at connection time means the single shared client honours a change
      * to the toggle without being rebuilt. Off by default, so the secure path is unchanged.
@@ -83,14 +94,48 @@ object NetworkModule {
             tmf.init(null as java.security.KeyStore?)
             tmf.trustManagers.filterIsInstance<X509TrustManager>().first()
         }
-        val flexibleTrust = object : X509TrustManager {
-            override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) =
-                platformTrust.checkClientTrusted(chain, authType)
+        val platformExtended = platformTrust as? X509ExtendedTrustManager
+
+        // Bypass only when opted in AND the connection is to the configured server's host.
+        fun bypass(peerHost: String?): Boolean {
+            if (!settings.snapshot.allowInsecure) return false
+            val configured = settings.snapshot.baseUrl.toHttpUrlOrNull()?.host ?: return false
+            return peerHost != null && peerHost.equals(configured, ignoreCase = true)
+        }
+
+        val flexibleTrust = object : X509ExtendedTrustManager() {
+            override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String, socket: Socket) {
+                val peerHost = (socket as? SSLSocket)?.handshakeSession?.peerHost
+                if (bypass(peerHost)) return
+                platformExtended?.checkServerTrusted(chain, authType, socket)
+                    ?: platformTrust.checkServerTrusted(chain, authType)
+            }
+
+            override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String, engine: SSLEngine) {
+                if (bypass(engine.peerHost)) return
+                platformExtended?.checkServerTrusted(chain, authType, engine)
+                    ?: platformTrust.checkServerTrusted(chain, authType)
+            }
 
             override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {
-                if (settings.snapshot.allowInsecure) return // trust any server cert when opted in
+                // No peer information available on this legacy path (not used by Conscrypt) —
+                // fall back to the unscoped toggle so insecure mode keeps working if it's ever hit.
+                if (settings.snapshot.allowInsecure) return
                 platformTrust.checkServerTrusted(chain, authType)
             }
+
+            override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String, socket: Socket) {
+                platformExtended?.checkClientTrusted(chain, authType, socket)
+                    ?: platformTrust.checkClientTrusted(chain, authType)
+            }
+
+            override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String, engine: SSLEngine) {
+                platformExtended?.checkClientTrusted(chain, authType, engine)
+                    ?: platformTrust.checkClientTrusted(chain, authType)
+            }
+
+            override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) =
+                platformTrust.checkClientTrusted(chain, authType)
 
             override fun getAcceptedIssuers(): Array<X509Certificate> = platformTrust.acceptedIssuers
         }
@@ -100,7 +145,7 @@ object NetworkModule {
         val defaultHostnameVerifier = javax.net.ssl.HttpsURLConnection.getDefaultHostnameVerifier()
         return sslSocketFactory(sslContext.socketFactory, flexibleTrust)
             .hostnameVerifier(HostnameVerifier { hostname, session ->
-                settings.snapshot.allowInsecure || defaultHostnameVerifier.verify(hostname, session)
+                bypass(hostname) || defaultHostnameVerifier.verify(hostname, session)
             })
     }
 
