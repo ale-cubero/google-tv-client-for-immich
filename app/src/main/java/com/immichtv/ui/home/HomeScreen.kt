@@ -71,6 +71,7 @@ import com.immichtv.ui.common.EmptyState
 import com.immichtv.ui.common.ErrorState
 import com.immichtv.ui.common.LoadingState
 import com.immichtv.ui.common.QrCode
+import com.immichtv.ui.common.brandButtonColors
 import com.immichtv.ui.theme.AppColors
 import com.immichtv.ui.theme.ThemeMode
 import com.immichtv.domain.Album
@@ -185,6 +186,7 @@ private fun HomeContent(
                 Button(
                     onClick = onOpenTimeline,
                     modifier = Modifier.focusRequester(timelineFocus),
+                    colors = brandButtonColors(),
                 ) {
                     Icon(Icons.Filled.CalendarMonth, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
@@ -429,7 +431,7 @@ private fun SlideshowSettingsDialog(
                 color = AppColors.textTertiary,
                 style = MaterialTheme.typography.bodySmall,
             )
-            Button(onClick = onDismiss) { Text("Done") }
+            Button(onClick = onDismiss, colors = brandButtonColors()) { Text("Done") }
         }
     }
     LaunchedEffect(Unit) { runCatching { firstFocus.requestFocus() } }
@@ -484,7 +486,7 @@ private fun AppearanceDialog(
                     onClick = { onSelect(ThemeMode.LIGHT) },
                 )
             }
-            Button(onClick = onDismiss) { Text("Done") }
+            Button(onClick = onDismiss, colors = brandButtonColors()) { Text("Done") }
         }
     }
     LaunchedEffect(Unit) { runCatching { firstFocus.requestFocus() } }
@@ -602,6 +604,7 @@ private fun AboutDialog(onDismiss: () -> Unit) {
                 Button(
                     onClick = onDismiss,
                     modifier = Modifier.padding(top = 10.dp).focusRequester(closeFocus),
+                    colors = brandButtonColors(),
                 ) { Text("Close") }
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {

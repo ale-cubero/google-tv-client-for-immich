@@ -53,6 +53,7 @@ import androidx.tv.material3.Button
 import androidx.tv.material3.Icon
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import com.immichtv.ui.common.brandButtonColors
 import com.immichtv.ui.theme.AppColors
 
 @Composable
@@ -116,6 +117,7 @@ fun SetupScreen(
             Button(
                 onClick = { viewModel.validateAndSave(onConfigured) },
                 enabled = !state.validating,
+                colors = brandButtonColors(),
             ) {
                 Text(if (state.validating) "Validating…" else "Connect")
             }

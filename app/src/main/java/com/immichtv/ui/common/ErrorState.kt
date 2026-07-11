@@ -28,7 +28,7 @@ fun ErrorState(message: String, onRetry: () -> Unit) {
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center,
             )
-            Button(onClick = onRetry) { Text("Retry") }
+            Button(onClick = onRetry, colors = brandButtonColors()) { Text("Retry") }
         }
     }
 }
