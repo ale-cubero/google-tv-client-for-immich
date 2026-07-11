@@ -9,14 +9,20 @@ import com.immichtv.domain.Album
 import com.immichtv.domain.Asset
 import com.immichtv.domain.Memory
 import com.immichtv.domain.Person
+import com.immichtv.domain.SlideshowPrefs
 import com.immichtv.ui.common.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+/** Home data older than this is re-fetched when the screen comes back to the foreground. */
+private const val STALE_AFTER_MS = 5 * 60_000L
 
 data class HomeData(
     val memories: List<Memory> = emptyList(),
@@ -42,8 +48,24 @@ class HomeViewModel @Inject constructor(
     private val _state = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
     val state: StateFlow<HomeUiState> = _state.asStateFlow()
 
+    val slideshowPrefs: StateFlow<SlideshowPrefs> =
+        settings.slideshowPrefs.stateIn(viewModelScope, SharingStarted.Eagerly, SlideshowPrefs())
+
+    private var loadedAt = 0L
+
     init {
         load()
+    }
+
+    /** Home survives on the back stack; re-fetch when it resurfaces with stale data. */
+    fun refreshIfStale() {
+        if (_state.value is HomeUiState.Ready && System.currentTimeMillis() - loadedAt > STALE_AFTER_MS) {
+            load()
+        }
+    }
+
+    fun saveSlideshowPrefs(prefs: SlideshowPrefs) {
+        viewModelScope.launch { settings.saveSlideshowPrefs(prefs) }
     }
 
     fun load() {
@@ -67,6 +89,7 @@ class HomeViewModel @Inject constructor(
             // bad — show an actionable error with Retry. A partial failure just leaves that rail empty;
             // a reachable-but-empty library shows an (empty) Home rather than a false error.
             val firstFailure = results.firstOrNull { it.isFailure }?.exceptionOrNull()
+            loadedAt = System.currentTimeMillis()
             _state.value = if (results.all { it.isFailure } && firstFailure != null) {
                 HomeUiState.Error(firstFailure.toUserMessage())
             } else {

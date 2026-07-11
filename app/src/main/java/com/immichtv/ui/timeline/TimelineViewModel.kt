@@ -5,6 +5,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.immichtv.data.ImmichRepository
+import com.immichtv.data.TimelineNav
 import com.immichtv.data.ViewerQueue
 import com.immichtv.domain.Asset
 import com.immichtv.domain.BucketMeta
@@ -72,7 +73,9 @@ class TimelineViewModel @Inject constructor(
     /** Stage the clicked month's assets for the viewer. Returns false if not loaded yet. */
     fun prepareViewer(timeBucket: String, index: Int): Boolean {
         val assets = loaded[timeBucket] ?: return false
-        viewerQueue.set(assets, index)
+        val bucketIndex = order[timeBucket] ?: return false
+        // Timeline context lets the viewer keep paging into adjacent months past this bucket's edges.
+        viewerQueue.set(assets, index, TimelineNav(orderList, bucketIndex))
         return true
     }
 

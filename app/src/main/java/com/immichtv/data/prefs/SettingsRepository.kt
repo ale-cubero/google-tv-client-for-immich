@@ -3,10 +3,12 @@ package com.immichtv.data.prefs
 import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.immichtv.data.crypto.KeystoreCrypto
 import com.immichtv.domain.ServerSettings
+import com.immichtv.domain.SlideshowPrefs
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -38,6 +40,8 @@ class SettingsRepository @Inject constructor(
     private val keyUrl = stringPreferencesKey("server_url")
     private val keyApiKey = stringPreferencesKey("api_key")
     private val keyInsecure = booleanPreferencesKey("allow_insecure")
+    private val keySlideshowInterval = intPreferencesKey("slideshow_interval_s")
+    private val keySlideshowShuffle = booleanPreferencesKey("slideshow_shuffle")
 
     /** Latest settings, readable synchronously from an interceptor. */
     @Volatile
@@ -56,6 +60,20 @@ class SettingsRepository @Inject constructor(
     /** Update the in-memory snapshot only — used to validate entered creds before persisting. */
     fun stageForValidation(settings: ServerSettings) {
         snapshot = settings
+    }
+
+    val slideshowPrefs: Flow<SlideshowPrefs> = dataStore.data.map {
+        SlideshowPrefs(
+            intervalSeconds = it[keySlideshowInterval] ?: 6,
+            shuffle = it[keySlideshowShuffle] ?: false,
+        )
+    }
+
+    suspend fun saveSlideshowPrefs(prefs: SlideshowPrefs) {
+        dataStore.edit {
+            it[keySlideshowInterval] = prefs.intervalSeconds
+            it[keySlideshowShuffle] = prefs.shuffle
+        }
     }
 
     /** Wipe all persisted server settings (logout) and reset the in-memory snapshot. */

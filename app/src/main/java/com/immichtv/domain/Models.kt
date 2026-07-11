@@ -11,6 +11,12 @@ data class ServerSettings(
     val isConfigured: Boolean get() = baseUrl.isNotBlank() && apiKey.isNotBlank()
 }
 
+/** Slideshow preferences (viewer slideshow + screensaver), persisted in DataStore. */
+data class SlideshowPrefs(
+    val intervalSeconds: Int = 6,
+    val shuffle: Boolean = false,
+)
+
 /** An album as shown in a list (no assets loaded). */
 data class Album(
     val id: String,
@@ -61,6 +67,7 @@ data class Asset(
     val previewUrl: String,      // size=preview — full-screen photo
     val videoUrl: String,        // /video/playback — empty for images
     val motionVideoUrl: String = "", // motion-photo clip playback URL — empty unless a live/motion photo
+    val duration: String = "",   // formatted video duration ("2:34", "1:02:34"); empty for images/unknown
 ) {
     /** A still photo that carries an embedded motion clip (Samsung/Apple/Google live photo). */
     val hasMotion: Boolean get() = !isVideo && motionVideoUrl.isNotEmpty()

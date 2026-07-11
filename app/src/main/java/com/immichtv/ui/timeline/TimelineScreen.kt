@@ -47,7 +47,10 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.immichtv.ui.common.AssetThumbnail
 import com.immichtv.ui.common.CardFocus
+import com.immichtv.ui.common.EmptyState
 import com.immichtv.ui.common.ErrorState
+import com.immichtv.ui.common.LoadingState
+import com.immichtv.ui.theme.AppColors
 import com.immichtv.domain.Asset
 import com.immichtv.domain.BucketMeta
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -68,9 +71,17 @@ fun TimelineScreen(
             .background(MaterialTheme.colorScheme.background),
     ) {
         when (val s = state) {
-            is TimelineUiState.Loading -> CenterText("Loading timeline…")
+            is TimelineUiState.Loading -> LoadingState("Loading timeline…")
             is TimelineUiState.Error -> ErrorState(s.message, onRetry = viewModel::load)
-            is TimelineUiState.Ready -> TimelineContent(s.buckets, viewModel, onOpenViewer)
+            is TimelineUiState.Ready ->
+                if (s.buckets.isEmpty()) {
+                    EmptyState(
+                        title = "Your timeline is empty",
+                        subtitle = "Photos and videos added in Immich will show up here.",
+                    )
+                } else {
+                    TimelineContent(s.buckets, viewModel, onOpenViewer)
+                }
         }
     }
 }
@@ -102,6 +113,16 @@ private fun TimelineContent(
         snapshotFlow {
             gridState.layoutInfo.visibleItemsInfo.mapNotNull { bucketOfKey(it.key) }.toSet()
         }.distinctUntilChanged().collect { viewModel.onVisibleBuckets(it) }
+    }
+
+    // Track the year at the top of the viewport so the scrubber can indicate where you are.
+    var currentYear by remember { androidx.compose.runtime.mutableIntStateOf(buckets.firstOrNull()?.year ?: 0) }
+    LaunchedEffect(gridState, buckets) {
+        snapshotFlow { gridState.layoutInfo.visibleItemsInfo.firstOrNull()?.key?.let(::bucketOfKey) }
+            .distinctUntilChanged()
+            .collect { tb ->
+                buckets.firstOrNull { it.timeBucket == tb }?.let { currentYear = it.year }
+            }
     }
 
     Row(modifier = Modifier.fillMaxSize()) {
@@ -148,6 +169,7 @@ private fun TimelineContent(
 
         YearScrubber(
             buckets = buckets,
+            currentYear = currentYear,
             onScrubToIndex = { flatIndex -> scope.launch { gridState.scrollToItem(flatIndex) } },
             modifier = Modifier.fillMaxHeight(),
         )
@@ -181,7 +203,7 @@ private fun ThumbnailCell(asset: Asset?, modifier: Modifier = Modifier, onClick:
         if (asset != null) {
             AssetThumbnail(asset, modifier = Modifier.fillMaxSize())
         } else {
-            Box(modifier = Modifier.fillMaxSize().background(Color(0xFF20262C)))
+            Box(modifier = Modifier.fillMaxSize().background(AppColors.placeholder))
         }
     }
 }
@@ -189,6 +211,7 @@ private fun ThumbnailCell(asset: Asset?, modifier: Modifier = Modifier, onClick:
 @Composable
 private fun YearScrubber(
     buckets: List<BucketMeta>,
+    currentYear: Int,
     onScrubToIndex: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -202,17 +225,24 @@ private fun YearScrubber(
     LazyColumn(
         modifier = modifier
             .width(88.dp)
-            .background(Color(0xFF0E1216)),
+            .background(AppColors.rail),
         horizontalAlignment = Alignment.CenterHorizontally,
         contentPadding = PaddingValues(vertical = 27.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         items(years, key = { it.first }) { (year, flatIndex) ->
             var focused by remember { mutableStateOf(false) }
+            val isCurrent = year == currentYear
             Text(
                 text = year.toString(),
-                color = if (focused) MaterialTheme.colorScheme.onPrimary
-                else MaterialTheme.colorScheme.onBackground,
+                // Focused = inverted chip; current-but-unfocused = accent so you can always see
+                // where you are in the library while scrolling the grid.
+                color = when {
+                    focused -> MaterialTheme.colorScheme.onPrimary
+                    isCurrent -> MaterialTheme.colorScheme.primary
+                    else -> AppColors.textSecondary
+                },
+                fontWeight = if (isCurrent || focused) FontWeight.Bold else FontWeight.Normal,
                 style = MaterialTheme.typography.labelLarge,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -228,13 +258,6 @@ private fun YearScrubber(
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             )
         }
-    }
-}
-
-@Composable
-private fun CenterText(text: String, color: Color = Color.White) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = text, color = color, style = MaterialTheme.typography.headlineSmall)
     }
 }
 

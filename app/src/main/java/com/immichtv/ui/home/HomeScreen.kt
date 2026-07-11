@@ -1,26 +1,36 @@
 package com.immichtv.ui.home
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.activity.compose.BackHandler
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Slideshow
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,25 +45,37 @@ import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.Button
 import androidx.tv.material3.Card
+import androidx.tv.material3.Icon
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
 import com.immichtv.BuildConfig
 import com.immichtv.ui.common.AssetThumbnail
 import com.immichtv.ui.common.CardFocus
+import com.immichtv.ui.common.EmptyState
 import com.immichtv.ui.common.ErrorState
+import com.immichtv.ui.common.LoadingState
+import com.immichtv.ui.common.QrCode
+import com.immichtv.ui.theme.AppColors
 import com.immichtv.domain.Album
 import com.immichtv.domain.Asset
 import com.immichtv.domain.Memory
 import com.immichtv.domain.Person
+import com.immichtv.domain.SlideshowPrefs
+
+private const val REPO_URL = "https://github.com/ale-cubero/google-tv-client-for-immich"
 
 @Composable
 fun HomeScreen(
@@ -66,8 +88,20 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val slideshowPrefs by viewModel.slideshowPrefs.collectAsStateWithLifecycle()
     var showMenu by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
+    var showSlideshowSettings by remember { mutableStateOf(false) }
+
+    // Home stays on the back stack for the whole session — refresh stale data when it resurfaces.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) viewModel.refreshIfStale()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Box(
         modifier = Modifier
@@ -75,7 +109,7 @@ fun HomeScreen(
             .background(MaterialTheme.colorScheme.background),
     ) {
         when (val s = state) {
-            is HomeUiState.Loading -> Center("Loading…")
+            is HomeUiState.Loading -> LoadingState("Loading your library…")
             is HomeUiState.Error -> ErrorState(s.message, onRetry = viewModel::load)
             is HomeUiState.Ready -> HomeContent(
                 data = s.data,
@@ -84,164 +118,28 @@ fun HomeScreen(
                 onOpenViewer = onOpenViewer,
                 onOpenAlbum = onOpenAlbum,
                 onOpenPerson = onOpenPerson,
+                onOpenSettings = { showMenu = true },
             )
         }
 
-        // Overscan-safe settings affordance in the top-right corner.
-        SettingsButton(
-            onClick = { showMenu = true },
-            modifier = Modifier.align(Alignment.TopEnd).padding(top = 40.dp, end = 48.dp),
-        )
         if (showMenu) {
             SettingsMenu(
                 onChangeServer = { showMenu = false; onChangeServer() },
+                onRefresh = { showMenu = false; viewModel.load() },
+                onSlideshow = { showMenu = false; showSlideshowSettings = true },
                 onLogout = { showMenu = false; viewModel.logout(onLoggedOut) },
                 onAbout = { showMenu = false; showAbout = true },
                 onDismiss = { showMenu = false },
             )
         }
+        if (showSlideshowSettings) {
+            SlideshowSettingsDialog(
+                prefs = slideshowPrefs,
+                onSave = viewModel::saveSlideshowPrefs,
+                onDismiss = { showSlideshowSettings = false },
+            )
+        }
         if (showAbout) AboutDialog(onDismiss = { showAbout = false })
-    }
-}
-
-@Composable
-private fun SettingsButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    var focused by remember { mutableStateOf(false) }
-    val border = if (focused) Color.White else Color(0x66FFFFFF)
-    Box(
-        modifier = modifier
-            .onFocusChanged { focused = it.isFocused }
-            .clickable(onClick = onClick)
-            .background(Color(0x33000000), RoundedCornerShape(20.dp))
-            .border(if (focused) 2.dp else 1.dp, border, RoundedCornerShape(20.dp))
-            .padding(horizontal = 18.dp, vertical = 8.dp),
-    ) {
-        Text(
-            text = "⚙  Settings",
-            color = if (focused) Color.White else Color(0xFFB8C0C8),
-            style = MaterialTheme.typography.labelLarge,
-        )
-    }
-}
-
-@Composable
-private fun SettingsMenu(
-    onChangeServer: () -> Unit,
-    onLogout: () -> Unit,
-    onAbout: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    BackHandler(enabled = true, onBack = onDismiss)
-    val firstItem = remember { FocusRequester() }
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0x99000000))
-            .clickable(onClick = onDismiss), // OK/click outside the panel dismisses
-        contentAlignment = Alignment.TopEnd,
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier
-                .padding(top = 84.dp, end = 48.dp)
-                .width(320.dp)
-                .background(Color(0xFF11161B), RoundedCornerShape(14.dp))
-                .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(14.dp))
-                .padding(10.dp),
-        ) {
-            MenuItem("🔌  Change server", Modifier.focusRequester(firstItem), onChangeServer)
-            MenuItem("🚪  Logout", onClick = onLogout)
-            MenuItem("ⓘ  About", onClick = onAbout)
-        }
-    }
-    LaunchedEffect(Unit) { runCatching { firstItem.requestFocus() } }
-}
-
-@Composable
-private fun MenuItem(text: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    var focused by remember { mutableStateOf(false) }
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .onFocusChanged { focused = it.isFocused }
-            .clickable(onClick = onClick)
-            .background(
-                if (focused) Color(0xFF2A333B) else Color.Transparent,
-                RoundedCornerShape(8.dp),
-            )
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-    ) {
-        Text(
-            text = text,
-            color = if (focused) Color.White else Color(0xFFB8C0C8),
-            style = MaterialTheme.typography.bodyLarge,
-        )
-    }
-}
-
-@Composable
-private fun AboutDialog(onDismiss: () -> Unit) {
-    BackHandler(enabled = true, onBack = onDismiss)
-    val closeFocus = remember { FocusRequester() }
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xCC000000))
-            .clickable(onClick = onDismiss), // click/OK outside the card dismisses
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            horizontalAlignment = Alignment.Start,
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier
-                .widthIn(max = 560.dp)
-                .background(Color(0xFF11161B), RoundedCornerShape(16.dp))
-                .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(16.dp))
-                .padding(horizontal = 40.dp, vertical = 36.dp),
-        ) {
-            Text(
-                text = "TV client for Immich",
-                color = Color.White,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = "Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
-                color = Color(0xFF9AA4AD),
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            AboutRow("Developer", "Alejandro Cubero")
-            AboutRow("GitHub", "github.com/ale-cubero/google-tv-client-for-immich")
-            Text(
-                text = "A read-only Android TV client for a self-hosted Immich server. " +
-                    "Unofficial — not affiliated with the Immich project.",
-                color = Color(0xFF8A929A),
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-            Button(
-                onClick = onDismiss,
-                modifier = Modifier.padding(top = 10.dp).focusRequester(closeFocus),
-            ) { Text("Close") }
-        }
-    }
-    // Focus the Close button so the dialog is immediately dismissable with OK or Back.
-    LaunchedEffect(Unit) { runCatching { closeFocus.requestFocus() } }
-}
-
-@Composable
-private fun AboutRow(label: String, value: String) {
-    Row {
-        Text(
-            text = "$label:  ",
-            color = Color(0xFF6D7680),
-            style = MaterialTheme.typography.bodyMedium,
-        )
-        Text(
-            text = value,
-            color = Color.White,
-            style = MaterialTheme.typography.bodyMedium,
-        )
     }
 }
 
@@ -253,18 +151,43 @@ private fun HomeContent(
     onOpenViewer: () -> Unit,
     onOpenAlbum: (String, String) -> Unit,
     onOpenPerson: (String, String) -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
+    val isEmpty = data == HomeData()
     val timelineFocus = remember { FocusRequester() }
     LazyColumn(
         contentPadding = PaddingValues(top = 40.dp, bottom = 60.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item {
-            Row0 {
+            // Header row: Timeline on the left, Settings on the right. Part of the scrolling
+            // content so nothing floats over the rails.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 48.dp, end = 48.dp, bottom = 8.dp),
+            ) {
                 Button(
                     onClick = onOpenTimeline,
                     modifier = Modifier.focusRequester(timelineFocus),
-                ) { Text("📅  Timeline") }
+                ) {
+                    Icon(Icons.Filled.CalendarMonth, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Timeline")
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                SettingsButton(onClick = onOpenSettings)
+            }
+        }
+
+        if (isEmpty) {
+            item {
+                EmptyState(
+                    title = "Your library is empty",
+                    subtitle = "Photos and videos added in Immich will show up here.",
+                    modifier = Modifier.fillMaxWidth().height(400.dp),
+                )
             }
         }
 
@@ -323,8 +246,285 @@ private fun HomeContent(
 }
 
 @Composable
-private fun Row0(content: @Composable () -> Unit) {
-    Box(modifier = Modifier.padding(start = 48.dp, bottom = 8.dp)) { content() }
+private fun SettingsButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    var focused by remember { mutableStateOf(false) }
+    val border = if (focused) Color.White else Color(0x66FFFFFF)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier
+            .onFocusChanged { focused = it.isFocused }
+            .clickable(onClick = onClick)
+            .background(Color(0x33000000), RoundedCornerShape(20.dp))
+            .border(if (focused) 2.dp else 1.dp, border, RoundedCornerShape(20.dp))
+            .padding(horizontal = 18.dp, vertical = 8.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Settings,
+            contentDescription = null,
+            tint = if (focused) Color.White else Color(0xFFB8C0C8),
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            text = "Settings",
+            color = if (focused) Color.White else Color(0xFFB8C0C8),
+            style = MaterialTheme.typography.labelLarge,
+        )
+    }
+}
+
+@Composable
+private fun SettingsMenu(
+    onChangeServer: () -> Unit,
+    onRefresh: () -> Unit,
+    onSlideshow: () -> Unit,
+    onLogout: () -> Unit,
+    onAbout: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    BackHandler(enabled = true, onBack = onDismiss)
+    val firstItem = remember { FocusRequester() }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0x99000000))
+            .clickable(onClick = onDismiss), // OK/click outside the panel dismisses
+        contentAlignment = Alignment.TopEnd,
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier
+                .padding(top = 84.dp, end = 48.dp)
+                .width(340.dp)
+                .background(AppColors.panel, RoundedCornerShape(14.dp))
+                .border(1.dp, AppColors.outline, RoundedCornerShape(14.dp))
+                .padding(10.dp),
+        ) {
+            MenuItem("Change server", Icons.Filled.Dns, Modifier.focusRequester(firstItem), onChangeServer)
+            MenuItem("Refresh", Icons.Filled.Refresh, onClick = onRefresh)
+            MenuItem("Slideshow settings", Icons.Filled.Slideshow, onClick = onSlideshow)
+            MenuItem("Logout", Icons.AutoMirrored.Filled.Logout, onClick = onLogout)
+            MenuItem("About", Icons.Filled.Info, onClick = onAbout)
+        }
+    }
+    LaunchedEffect(Unit) { runCatching { firstItem.requestFocus() } }
+}
+
+@Composable
+private fun MenuItem(
+    text: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    var focused by remember { mutableStateOf(false) }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .onFocusChanged { focused = it.isFocused }
+            .clickable(onClick = onClick)
+            .background(
+                if (focused) Color(0xFF2A333B) else Color.Transparent,
+                RoundedCornerShape(8.dp),
+            )
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = if (focused) Color.White else AppColors.textSecondary,
+            modifier = Modifier.size(20.dp),
+        )
+        Text(
+            text = text,
+            color = if (focused) Color.White else Color(0xFFB8C0C8),
+            style = MaterialTheme.typography.bodyLarge,
+        )
+    }
+}
+
+@Composable
+private fun SlideshowSettingsDialog(
+    prefs: SlideshowPrefs,
+    onSave: (SlideshowPrefs) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    BackHandler(enabled = true, onBack = onDismiss)
+    val firstFocus = remember { FocusRequester() }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(AppColors.scrim)
+            .clickable(onClick = onDismiss),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier
+                .widthIn(max = 520.dp)
+                .background(AppColors.panel, RoundedCornerShape(16.dp))
+                .border(1.dp, AppColors.outline, RoundedCornerShape(16.dp))
+                .padding(horizontal = 36.dp, vertical = 30.dp),
+        ) {
+            Text(
+                text = "Slideshow",
+                color = Color.White,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = "Photo interval",
+                color = AppColors.textSecondary,
+                style = MaterialTheme.typography.labelLarge,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                listOf(3, 6, 10).forEachIndexed { i, seconds ->
+                    OptionChip(
+                        label = "${seconds}s",
+                        selected = prefs.intervalSeconds == seconds,
+                        modifier = if (i == 0) Modifier.focusRequester(firstFocus) else Modifier,
+                        onClick = { onSave(prefs.copy(intervalSeconds = seconds)) },
+                    )
+                }
+            }
+            Text(
+                text = "Order",
+                color = AppColors.textSecondary,
+                style = MaterialTheme.typography.labelLarge,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OptionChip(
+                    label = "In order",
+                    selected = !prefs.shuffle,
+                    onClick = { onSave(prefs.copy(shuffle = false)) },
+                )
+                OptionChip(
+                    label = "Shuffle",
+                    selected = prefs.shuffle,
+                    onClick = { onSave(prefs.copy(shuffle = true)) },
+                )
+            }
+            Text(
+                text = "Applies to the viewer slideshow (⏯) and the screensaver.",
+                color = AppColors.textTertiary,
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Button(onClick = onDismiss) { Text("Done") }
+        }
+    }
+    LaunchedEffect(Unit) { runCatching { firstFocus.requestFocus() } }
+}
+
+@Composable
+private fun OptionChip(
+    label: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    var focused by remember { mutableStateOf(false) }
+    val bg = when {
+        selected -> MaterialTheme.colorScheme.primary
+        focused -> Color(0xFF2A333B)
+        else -> Color.Transparent
+    }
+    val fg = if (selected) MaterialTheme.colorScheme.onPrimary else Color.White
+    Box(
+        modifier = modifier
+            .onFocusChanged { focused = it.isFocused }
+            .clickable(onClick = onClick)
+            .background(bg, RoundedCornerShape(18.dp))
+            .border(
+                width = if (focused) 2.dp else 1.dp,
+                color = if (focused) Color.White else AppColors.outline,
+                shape = RoundedCornerShape(18.dp),
+            )
+            .padding(horizontal = 18.dp, vertical = 8.dp),
+    ) {
+        Text(text = label, color = fg, style = MaterialTheme.typography.labelLarge)
+    }
+}
+
+@Composable
+private fun AboutDialog(onDismiss: () -> Unit) {
+    BackHandler(enabled = true, onBack = onDismiss)
+    val closeFocus = remember { FocusRequester() }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(AppColors.scrim)
+            .clickable(onClick = onDismiss), // click/OK outside the card dismisses
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(28.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .widthIn(max = 680.dp)
+                .background(AppColors.panel, RoundedCornerShape(16.dp))
+                .border(1.dp, AppColors.outline, RoundedCornerShape(16.dp))
+                .padding(horizontal = 40.dp, vertical = 36.dp),
+        ) {
+            Column(
+                horizontalAlignment = Alignment.Start,
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(
+                    text = "TV client for Immich",
+                    color = Color.White,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = "Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                    color = AppColors.textSecondary,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                AboutRow("Developer", "Alejandro Cubero")
+                AboutRow("GitHub", REPO_URL.removePrefix("https://"))
+                Text(
+                    text = "A read-only Android TV client for a self-hosted Immich server. " +
+                        "Unofficial — not affiliated with the Immich project.",
+                    color = AppColors.textSecondary,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.padding(top = 10.dp).focusRequester(closeFocus),
+                ) { Text("Close") }
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                QrCode(content = REPO_URL)
+                Text(
+                    text = "Scan for the repo",
+                    color = AppColors.textTertiary,
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
+        }
+    }
+    // Focus the Close button so the dialog is immediately dismissable with OK or Back.
+    LaunchedEffect(Unit) { runCatching { closeFocus.requestFocus() } }
+}
+
+@Composable
+private fun AboutRow(label: String, value: String) {
+    Row {
+        Text(
+            text = "$label:  ",
+            color = AppColors.textTertiary,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        Text(
+            text = value,
+            color = Color.White,
+            style = MaterialTheme.typography.bodyMedium,
+        )
+    }
 }
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -373,9 +573,9 @@ private fun AlbumTile(album: Album, onClick: () -> Unit) {
         ) {
             AsyncImage(
                 model = album.thumbnailUrl,
-                contentDescription = null,
+                contentDescription = "Album: ${album.name}",
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize().background(Color(0xFF20262C)),
+                modifier = Modifier.fillMaxSize().background(AppColors.placeholder),
             )
         }
         Text(
@@ -388,7 +588,7 @@ private fun AlbumTile(album: Album, onClick: () -> Unit) {
         )
         Text(
             text = "${album.assetCount} items",
-            color = Color(0xFF9AA4AD),
+            color = AppColors.textSecondary,
             style = MaterialTheme.typography.bodySmall,
         )
     }
@@ -410,7 +610,7 @@ private fun PersonTile(person: Person, onClick: () -> Unit) {
                 model = person.thumbnailUrl,
                 contentDescription = person.name,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize().background(Color(0xFF20262C)),
+                modifier = Modifier.fillMaxSize().background(AppColors.placeholder),
             )
         }
         Text(
@@ -432,7 +632,7 @@ private fun MemoryTile(memory: Memory, onClick: () -> Unit) {
         scale = CardFocus.scale(),
         modifier = Modifier.width(280.dp).height(160.dp),
     ) {
-        Box(modifier = Modifier.fillMaxSize().background(Color(0xFF20262C))) {
+        Box(modifier = Modifier.fillMaxSize().background(AppColors.placeholder)) {
             memory.assets.firstOrNull()?.let { cover ->
                 AssetThumbnail(cover, modifier = Modifier.fillMaxSize())
             }
@@ -453,12 +653,5 @@ private fun MemoryTile(memory: Memory, onClick: () -> Unit) {
                 modifier = Modifier.align(Alignment.BottomStart).padding(14.dp),
             )
         }
-    }
-}
-
-@Composable
-private fun Center(text: String, color: Color = Color.White) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = text, color = color, style = MaterialTheme.typography.headlineSmall)
     }
 }

@@ -1,24 +1,39 @@
 package com.immichtv.ui.viewer
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MotionPhotosOn
+import androidx.compose.material.icons.filled.Slideshow
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -37,6 +52,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -49,17 +65,21 @@ import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.PlayerView
+import androidx.tv.material3.Icon
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import coil3.compose.AsyncImage
 import com.immichtv.R
 import com.immichtv.domain.Asset
-import com.immichtv.domain.AssetDetail
+import com.immichtv.ui.common.Spinner
+import com.immichtv.ui.theme.AppColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private const val SEEK_STEP_MS = 10_000L
-private const val SLIDESHOW_PHOTO_MS = 6_000L
+private const val HINTS_MS = 6_000L
+private const val SCRUB_HIDE_MS = 3_000L
+private const val POSITION_CHIP_MS = 2_000L
 
 @Composable
 fun ViewerScreen(
@@ -73,12 +93,11 @@ fun ViewerScreen(
         when (val s = viewModel.state) {
             is ViewerUiState.Error -> Text(
                 s.message,
-                color = Color(0xFFFF6E6E),
+                color = AppColors.error,
                 modifier = Modifier.align(Alignment.Center),
             )
 
             is ViewerUiState.Ready -> ViewerPager(
-                assets = s.assets,
                 startIndex = s.startIndex,
                 player = rememberExoPlayer(viewModel),
                 viewModel = viewModel,
@@ -106,17 +125,20 @@ private fun rememberExoPlayer(viewModel: ViewerViewModel): ExoPlayer {
 
 @Composable
 private fun ViewerPager(
-    assets: List<Asset>,
     startIndex: Int,
     player: ExoPlayer,
     viewModel: ViewerViewModel,
 ) {
+    // The asset list can grow while paging (cross-month continuation from the timeline).
+    val assets by viewModel.assets.collectAsStateWithLifecycle()
+    val slideshowPrefs by viewModel.slideshowPrefs.collectAsStateWithLifecycle()
     val pagerState = rememberPagerState(initialPage = startIndex) { assets.size }
     val scope = rememberCoroutineScope()
     val focus = remember { FocusRequester() }
     val detail by viewModel.detail.collectAsStateWithLifecycle()
 
     var isPlaying by remember { mutableStateOf(false) }
+    var buffering by remember { mutableStateOf(false) }
     var showInfo by remember { mutableStateOf(false) }
     var slideshow by remember { mutableStateOf(false) }
     // A motion photo (live photo) is playing its clip over the still.
@@ -131,9 +153,24 @@ private fun ViewerPager(
     var videoError by remember { mutableStateOf(false) }
     // Per-direction tap vs hold tracking (hold = seek on video, tap = prev/next asset).
     var pendingTap by remember { mutableIntStateOf(0) } // -1 left, +1 right, 0 none
+    // Control hints shown briefly when the viewer opens; any key dismisses early.
+    var showHints by remember { mutableStateOf(true) }
+    // Transient scrub bar state (videos): visible while paused, or briefly after a seek.
+    var scrubKick by remember { mutableIntStateOf(0) }
+    var showScrub by remember { mutableStateOf(false) }
+    var scrubPositionMs by remember { mutableLongStateOf(0L) }
+    var scrubDurationMs by remember { mutableLongStateOf(0L) }
+    // Transient "n / total" chip on page change.
+    var showPosition by remember { mutableStateOf(false) }
+    val panelScroll = rememberScrollState()
 
     fun advance() {
-        val target = if (pagerState.currentPage >= assets.lastIndex) 0 else pagerState.currentPage + 1
+        val target = when {
+            slideshowPrefs.shuffle && assets.size > 1 ->
+                generateSequence { assets.indices.random() }.first { it != pagerState.currentPage }
+            pagerState.currentPage >= assets.lastIndex -> 0
+            else -> pagerState.currentPage + 1
+        }
         scope.launch { pagerState.animateScrollToPage(target) }
     }
 
@@ -172,6 +209,7 @@ private fun ViewerPager(
             }
 
             override fun onPlaybackStateChanged(state: Int) {
+                buffering = state == Player.STATE_BUFFERING
                 if (state != Player.STATE_ENDED) return
                 val asset = currentAssetNow
                 when {
@@ -192,6 +230,14 @@ private fun ViewerPager(
         onDispose { player.removeListener(listener) }
     }
 
+    // A prepend (older pager index shift) grew the list at the front: jump the pager by the same
+    // amount, without animation, so the same asset stays on screen.
+    LaunchedEffect(Unit) {
+        viewModel.prepended.collect { n ->
+            pagerState.scrollToPage(pagerState.currentPage + n)
+        }
+    }
+
     // Loop a real video (unless in slideshow); motion clips and slideshow videos play once.
     LaunchedEffect(slideshow, pagerState.settledPage) {
         val asset = assets.getOrNull(pagerState.settledPage)
@@ -201,12 +247,19 @@ private fun ViewerPager(
 
     // On page settle: auto-play a real video; photos (incl. motion photos) show the still.
     // A motion photo's clip plays on demand (OK), not automatically.
+    var preparedAssetId by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(pagerState.settledPage) {
         val asset = assets.getOrNull(pagerState.settledPage) ?: return@LaunchedEffect
+        viewModel.onPageSettled(pagerState.settledPage)
+        // An index shift from a prepend settles on the SAME asset — don't restart its playback.
+        if (asset.id == preparedAssetId) return@LaunchedEffect
+        preparedAssetId = asset.id
         motionPlaying = false
         videoError = false
         videoColorInfo = null // reset; the listener fills it in when the new video renders
         videoNeedsTexture = false // start every video on a SurfaceView (HDR); latch if rotation needs it
+        scrubKick = 0
+        panelScroll.scrollTo(0)
         if (asset.isVideo) {
             player.setMediaItem(MediaItem.fromUri(asset.videoUrl))
             player.prepare()
@@ -227,11 +280,11 @@ private fun ViewerPager(
     }
 
     // Slideshow photo timer (videos advance on end via the listener above).
-    LaunchedEffect(slideshow, pagerState.currentPage) {
+    LaunchedEffect(slideshow, pagerState.currentPage, slideshowPrefs.intervalSeconds) {
         if (!slideshow) return@LaunchedEffect
         val asset = assets.getOrNull(pagerState.currentPage) ?: return@LaunchedEffect
         if (!asset.isVideo) {
-            delay(SLIDESHOW_PHOTO_MS)
+            delay(slideshowPrefs.intervalSeconds * 1_000L)
             if (slideshow) advance()
         }
     }
@@ -245,6 +298,50 @@ private fun ViewerPager(
     val context = LocalContext.current
     val hdrLabel = if (current?.isVideo == true) VideoHdr.label(videoColorInfo, context) else null
 
+    // Hints fade out on their own; any key press dismisses them early (handled in the key listener).
+    LaunchedEffect(Unit) {
+        delay(HINTS_MS)
+        showHints = false
+    }
+
+    // Scrub bar visibility: pinned while a video is paused; else briefly after seek activity.
+    LaunchedEffect(current?.id, isPlaying, scrubKick, motionPlaying) {
+        val onVideoNow = current?.isVideo == true || motionPlaying
+        when {
+            !onVideoNow -> showScrub = false
+            !isPlaying -> showScrub = true // paused: keep it up
+            scrubKick > 0 -> {
+                showScrub = true
+                delay(SCRUB_HIDE_MS)
+                showScrub = false
+            }
+            else -> showScrub = false
+        }
+    }
+    // While visible, poll the player position.
+    LaunchedEffect(showScrub) {
+        while (showScrub) {
+            scrubPositionMs = player.currentPosition.coerceAtLeast(0)
+            scrubDurationMs = player.duration.coerceAtLeast(0)
+            delay(250)
+        }
+    }
+
+    // Transient position chip on page change (skipped when the change was a prepend index shift).
+    var chipAssetId by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(pagerState.currentPage) {
+        val asset = assets.getOrNull(pagerState.currentPage) ?: return@LaunchedEffect
+        if (chipAssetId == null) { chipAssetId = asset.id; return@LaunchedEffect } // initial page: no chip
+        if (asset.id == chipAssetId) return@LaunchedEffect
+        chipAssetId = asset.id
+        showPosition = true
+        delay(POSITION_CHIP_MS)
+        showPosition = false
+    }
+
+    // Back closes the metadata panel before it exits the viewer.
+    BackHandler(enabled = showInfo) { showInfo = false }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -252,6 +349,7 @@ private fun ViewerPager(
             .focusable()
             .onPreviewKeyEvent { event ->
                 val onVideo = current?.isVideo == true
+                if (event.type == KeyEventType.KeyDown) showHints = false
                 when (event.type) {
                     KeyEventType.KeyDown -> when (event.key) {
                         Key.MediaPlayPause, Key.MediaPlay -> {
@@ -261,11 +359,13 @@ private fun ViewerPager(
                         }
                         Key.DirectionRight -> {
                             slideshow = false
-                            handleHorizontal(+1, event.nativeKeyEvent.repeatCount, onVideo, player) { pendingTap = it }
+                            handleHorizontal(+1, event.nativeKeyEvent.repeatCount, onVideo, player,
+                                onSeek = { scrubKick++ }) { pendingTap = it }
                         }
                         Key.DirectionLeft -> {
                             slideshow = false
-                            handleHorizontal(-1, event.nativeKeyEvent.repeatCount, onVideo, player) { pendingTap = it }
+                            handleHorizontal(-1, event.nativeKeyEvent.repeatCount, onVideo, player,
+                                onSeek = { scrubKick++ }) { pendingTap = it }
                         }
                         Key.DirectionCenter, Key.Enter -> {
                             slideshow = false
@@ -278,8 +378,22 @@ private fun ViewerPager(
                             }
                             true
                         }
-                        Key.DirectionDown -> { slideshow = false; showInfo = !showInfo; true }
-                        Key.DirectionUp -> { showInfo = false; true }
+                        Key.DirectionDown -> {
+                            slideshow = false
+                            // Panel open: scroll it. Closed: open it.
+                            if (showInfo) scope.launch { panelScroll.animateScrollBy(220f) }
+                            else showInfo = true
+                            true
+                        }
+                        Key.DirectionUp -> {
+                            // Panel open & scrolled: scroll back. At top: close it.
+                            if (showInfo && panelScroll.value > 0) {
+                                scope.launch { panelScroll.animateScrollBy(-220f) }
+                            } else {
+                                showInfo = false
+                            }
+                            true
+                        }
                         else -> false
                     }
 
@@ -317,6 +431,27 @@ private fun ViewerPager(
                         else -> PhotoPage(asset)
                     }
                 }
+
+                if (buffering && current?.isVideo == true && !videoError) {
+                    Spinner(modifier = Modifier.align(Alignment.Center))
+                }
+
+                // Fully qualified: the enclosing Row's RowScope.AnimatedVisibility would otherwise
+                // shadow the top-level overload inside this Box.
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = showScrub && !videoError,
+                    enter = fadeIn(),
+                    exit = fadeOut(),
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                ) {
+                    ScrubBar(
+                        positionMs = scrubPositionMs,
+                        durationMs = scrubDurationMs,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 48.dp, vertical = 24.dp),
+                    )
+                }
             }
             if (showInfo) {
                 MetadataSidePanel(
@@ -326,52 +461,140 @@ private fun ViewerPager(
                     total = assets.size,
                     isPlaying = isPlaying,
                     hdr = hdrLabel,
+                    scroll = panelScroll,
                     modifier = Modifier.weight(0.36f).fillMaxHeight(),
                 )
             }
         }
 
         if (slideshow) {
-            Text(
-                text = "▶ Slideshow",
-                color = Color.White,
-                style = MaterialTheme.typography.labelLarge,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(24.dp)
-                    .background(Color(0x88000000))
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-            )
+            OverlayChip(modifier = Modifier.align(Alignment.TopEnd).padding(24.dp)) {
+                Icon(Icons.Filled.Slideshow, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                Text("Slideshow", color = Color.White, style = MaterialTheme.typography.labelLarge)
+            }
         }
 
         if (current?.hasMotion == true && !videoError) {
-            Text(
-                text = if (motionPlaying) "◉ LIVE" else "◉ LIVE  ·  OK to play",
-                color = Color.White,
-                style = MaterialTheme.typography.labelLarge,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(24.dp)
-                    .background(Color(0x88000000))
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-            )
+            OverlayChip(modifier = Modifier.align(Alignment.TopStart).padding(24.dp)) {
+                Icon(Icons.Filled.MotionPhotosOn, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                Text(
+                    text = if (motionPlaying) "LIVE" else "LIVE  ·  OK to play",
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+        }
+
+        AnimatedVisibility(
+            visible = showPosition && !showInfo,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.align(Alignment.TopCenter),
+        ) {
+            OverlayChip(modifier = Modifier.padding(24.dp)) {
+                Text(
+                    text = "${pagerState.currentPage + 1} / ${assets.size}",
+                    color = Color.White,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+        }
+
+        AnimatedVisibility(
+            visible = showHints,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.align(Alignment.BottomCenter),
+        ) {
+            OverlayChip(modifier = Modifier.padding(bottom = 64.dp)) {
+                Text(
+                    text = "OK play/pause · ◀ ▶ prev/next · hold ◀ ▶ seek · ▼ details · ⏯ slideshow",
+                    color = Color(0xFFCDD3D9),
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
         }
 
         if (videoError && current?.isVideo == true) {
-            Text(
-                text = "⚠  Can't play this video.\nThe server may be offline or unreachable.",
-                color = Color.White,
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .background(Color(0xCC000000), androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
+                    .background(AppColors.scrim, RoundedCornerShape(12.dp))
                     .padding(horizontal = 28.dp, vertical = 20.dp),
-            )
+            ) {
+                Icon(Icons.Filled.Warning, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
+                Text(
+                    text = "Can't play this video.\nThe server may be offline or unreachable.",
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                )
+            }
         }
     }
 
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+}
+
+/** Small rounded translucent chip used for viewer overlays (badges, hints, position). */
+@Composable
+private fun OverlayChip(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .background(AppColors.chip, RoundedCornerShape(8.dp))
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+    ) {
+        content()
+    }
+}
+
+/** Transient video scrub bar: elapsed · track · duration. */
+@Composable
+private fun ScrubBar(positionMs: Long, durationMs: Long, modifier: Modifier = Modifier) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        modifier = modifier
+            .background(AppColors.chip, RoundedCornerShape(10.dp))
+            .padding(horizontal = 18.dp, vertical = 12.dp),
+    ) {
+        Text(
+            text = formatTime(positionMs),
+            color = Color.White,
+            style = MaterialTheme.typography.labelLarge,
+        )
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(4.dp)
+                .background(Color(0x4DFFFFFF), RoundedCornerShape(2.dp)),
+        ) {
+            val fraction = if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(fraction)
+                    .height(4.dp)
+                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp)),
+            )
+        }
+        Text(
+            text = if (durationMs > 0) formatTime(durationMs) else "--:--",
+            color = Color(0xFFCDD3D9),
+            style = MaterialTheme.typography.labelLarge,
+        )
+    }
+}
+
+private fun formatTime(ms: Long): String {
+    val total = ms / 1000
+    val h = total / 3600
+    val m = (total % 3600) / 60
+    val s = total % 60
+    return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
 }
 
 /**
@@ -384,6 +607,7 @@ private fun handleHorizontal(
     repeatCount: Int,
     onVideo: Boolean,
     player: ExoPlayer,
+    onSeek: () -> Unit,
     markTap: (Int) -> Unit,
 ): Boolean {
     if (onVideo) {
@@ -394,6 +618,7 @@ private fun handleHorizontal(
             val target = (player.currentPosition + direction * SEEK_STEP_MS)
                 .coerceIn(0, if (player.duration > 0) player.duration else Long.MAX_VALUE)
             player.seekTo(target)
+            onSeek()
         }
         return true
     }
@@ -414,7 +639,7 @@ private fun PhotoPage(asset: Asset) {
         )
         AsyncImage(
             model = asset.previewUrl,
-            contentDescription = null,
+            contentDescription = if (asset.hasMotion) "Motion photo" else "Photo",
             contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize(),
         )
@@ -433,7 +658,7 @@ private fun VideoPage(player: ExoPlayer, poster: Asset, needsTexture: Boolean) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         AsyncImage(
             model = poster.previewUrl,
-            contentDescription = null,
+            contentDescription = "Video",
             contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize(),
         )
@@ -463,6 +688,7 @@ private fun MetadataSidePanel(
     total: Int,
     isPlaying: Boolean,
     hdr: String?,
+    scroll: androidx.compose.foundation.ScrollState,
     modifier: Modifier = Modifier,
 ) {
     val kind = when {
@@ -472,8 +698,8 @@ private fun MetadataSidePanel(
     val loaded = (detail as? DetailState.Loaded)?.detail
     Column(
         modifier = modifier
-            .background(Color(0xF00E1216))
-            .verticalScroll(rememberScrollState())
+            .background(AppColors.panelTranslucent)
+            .verticalScroll(scroll)
             .padding(horizontal = 36.dp, vertical = 54.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
@@ -485,16 +711,16 @@ private fun MetadataSidePanel(
         )
         Text(
             text = "$position / $total   ·   $kind",
-            color = Color(0xFF8A929A),
+            color = AppColors.textSecondary,
             style = MaterialTheme.typography.bodyMedium,
         )
         // From the decoded video format + display state — independent of the Immich detail fetch.
         LabeledRow("Dynamic range", hdr.orEmpty())
         when (detail) {
             is DetailState.Loading ->
-                Text("Loading details…", color = Color(0xFF8A929A), style = MaterialTheme.typography.bodyMedium)
+                Text("Loading details…", color = AppColors.textSecondary, style = MaterialTheme.typography.bodyMedium)
             is DetailState.Error ->
-                Text("Details unavailable", color = Color(0xFF8A929A), style = MaterialTheme.typography.bodyMedium)
+                Text("Details unavailable", color = AppColors.textSecondary, style = MaterialTheme.typography.bodyMedium)
             is DetailState.Loaded -> {
                 LabeledRow("Date", detail.detail.dateTaken)
                 LabeledRow("Location", detail.detail.location)
@@ -514,7 +740,7 @@ private fun LabeledRow(label: String, value: String) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(
             text = label.uppercase(),
-            color = Color(0xFF6D7680),
+            color = AppColors.textTertiary,
             style = MaterialTheme.typography.labelMedium,
         )
         Text(text = value, color = Color.White, style = MaterialTheme.typography.bodyLarge)

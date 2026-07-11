@@ -19,16 +19,18 @@ A native **Android TV / Google TV** client for a self-hosted [Immich](https://im
 
 ## Features
 
-- **Home** — an "On this day" memories row plus Recent, Albums, People, and Videos rails.
-- **Timeline** — the whole library in one smooth grid, driven by Immich's month "buckets": all month boundaries are known up front, each month's assets load lazily as you scroll, with prefetch and an LRU that evicts far‑off months. A year scrubber on the right edge jumps across a multi‑year library instantly.
+- **Home** — an "On this day" memories row plus Recent, Albums, People, and Videos rails, and a Settings menu (change server, refresh, slideshow settings, logout, about).
+- **Timeline** — the whole library in one smooth grid, driven by Immich's month "buckets": all month boundaries are known up front, each month's assets load lazily as you scroll, with prefetch and an LRU that evicts far‑off months. A year scrubber on the right edge jumps across a multi‑year library instantly (and always shows the year you're in).
 - **Albums & People** — browse an album or a person's photos in the same grid.
 - **Viewer** — full‑screen pager for photos and videos:
   - Photos load a cached thumbnail instantly, then the high‑res preview.
-  - Videos play via Media3/ExoPlayer (server decides direct‑play vs transcode).
-  - **OK** on a photo opens a metadata panel (date, location, resolution, camera, lens, exposure, people); **←/→** page; **hold ←/→** seeks video.
-  - **Motion Photos** (Samsung/Apple/Google live photos) show a **◉ LIVE** badge and play their motion clip on demand with **OK**.
-- **Slideshow** — interval slideshow from the viewer (Play/Pause key).
-- **Screensaver** — a `DreamService` that runs a photo slideshow as the system screensaver.
+  - Videos play via Media3/ExoPlayer (server decides direct‑play vs transcode), with a transient scrub bar, buffering indicator, and duration badges on tiles. HDR (HLG/PQ) plays with true passthrough, and the metadata panel reports the dynamic range.
+  - **OK** on a photo opens a metadata panel (date, location, resolution, camera, lens, exposure, people); **←/→** page; **hold ←/→** seeks video. Opened from the timeline, paging continues seamlessly across month boundaries.
+  - **Motion Photos** (Samsung/Apple/Google live photos) show a **LIVE** badge and play their motion clip on demand with **OK**.
+  - First‑open control hints, and a transient position indicator while paging.
+- **Slideshow** — interval slideshow from the viewer (Play/Pause key), with configurable interval and shuffle.
+- **Screensaver** — a `DreamService` that crossfades through photos sampled from across the whole library.
+- **Insecure mode (opt‑in)** — trust self‑signed certificates / plain `http://` for self‑hosted servers without a valid certificate.
 
 Every screen is fully operable with **D‑pad + OK + Back**.
 

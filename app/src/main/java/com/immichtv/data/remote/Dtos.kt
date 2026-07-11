@@ -2,6 +2,7 @@ package com.immichtv.data.remote
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonPrimitive
 
 /**
  * Hand-written DTOs for the ~handful of Immich endpoints we use (deliberately NOT codegen'd
@@ -116,6 +117,9 @@ data class AssetDto(
     val type: String = "IMAGE", // "IMAGE" | "VIDEO"
     @SerialName("originalFileName") val originalFileName: String = "",
     val livePhotoVideoId: String? = null, // set on motion-photo stills → the hidden motion clip
+    // Immich formats duration inconsistently ("H:MM:SS.mmm" string, number of seconds, or null) —
+    // take the raw primitive and normalize in the repository. (A typed String? failed parsing before.)
+    val duration: JsonPrimitive? = null,
 )
 
 /** One entry from `GET /api/timeline/buckets` — a month and its asset count. */
@@ -137,4 +141,5 @@ data class TimeBucketAssetsDto(
     val ratio: List<Double> = emptyList(),
     val thumbhash: List<String?> = emptyList(),
     val livePhotoVideoId: List<String?> = emptyList(),
+    val duration: List<JsonPrimitive?> = emptyList(), // per-asset video duration (see AssetDto.duration)
 )

@@ -23,8 +23,8 @@ android {
         applicationId = "com.immichtv"
         minSdk = 26
         targetSdk = 35
-        versionCode = 18
-        versionName = "1.17"
+        versionCode = 19
+        versionName = "1.18"
     }
 
     signingConfigs {
@@ -75,6 +75,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.compose.material.icons) // vector icons only; R8 strips unused
     implementation(libs.androidx.tv.material)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
@@ -94,6 +95,8 @@ dependencies {
     implementation(libs.coil.network.okhttp)
 
     implementation(libs.androidx.datastore.preferences)
+
+    implementation(libs.zxing.core) // local QR generation (About dialog); no network use
 
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.ui)

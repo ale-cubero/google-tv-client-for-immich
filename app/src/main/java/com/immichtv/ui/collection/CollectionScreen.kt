@@ -32,7 +32,9 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.immichtv.ui.common.AssetThumbnail
 import com.immichtv.ui.common.CardFocus
+import com.immichtv.ui.common.EmptyState
 import com.immichtv.ui.common.ErrorState
+import com.immichtv.ui.common.LoadingState
 import com.immichtv.domain.Asset
 
 @Composable
@@ -48,16 +50,24 @@ fun CollectionScreen(
             .background(MaterialTheme.colorScheme.background),
     ) {
         when (val s = state) {
-            is CollectionUiState.Loading -> Center("Loading…")
+            is CollectionUiState.Loading -> LoadingState("Loading…")
             is CollectionUiState.Error -> ErrorState(s.message, onRetry = viewModel::load)
-            is CollectionUiState.Ready -> CollectionGrid(
-                title = s.title,
-                assets = s.assets,
-                onOpen = { index ->
-                    viewModel.prepareViewer(index)
-                    onOpenViewer()
-                },
-            )
+            is CollectionUiState.Ready ->
+                if (s.assets.isEmpty()) {
+                    EmptyState(
+                        title = s.title.ifBlank { "Nothing here yet" },
+                        subtitle = "This collection has no photos or videos.",
+                    )
+                } else {
+                    CollectionGrid(
+                        title = s.title,
+                        assets = s.assets,
+                        onOpen = { index ->
+                            viewModel.prepareViewer(index)
+                            onOpenViewer()
+                        },
+                    )
+                }
         }
     }
 }
@@ -110,9 +120,3 @@ private fun Cell(asset: Asset, onClick: () -> Unit, modifier: Modifier = Modifie
     }
 }
 
-@Composable
-private fun Center(text: String, color: Color = Color.White) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = text, color = color, style = MaterialTheme.typography.headlineSmall)
-    }
-}

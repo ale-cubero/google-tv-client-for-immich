@@ -13,8 +13,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckBox
+import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,6 +39,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -44,8 +50,10 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.tv.material3.Button
+import androidx.tv.material3.Icon
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import com.immichtv.ui.theme.AppColors
 
 @Composable
 fun SetupScreen(
@@ -54,6 +62,7 @@ fun SetupScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val urlFocus = remember { FocusRequester() }
+    var showKey by remember { mutableStateOf(false) }
 
     // Overscan-safe padding (~5%).
     Box(
@@ -86,10 +95,20 @@ fun SetupScreen(
                 value = state.apiKey,
                 onValueChange = viewModel::onApiKeyChange,
                 keyboardType = KeyboardType.Password,
-                mask = true,
+                mask = !showKey,
+                imeAction = ImeAction.Done,
             )
 
-            InsecureToggle(
+            ToggleRow(
+                label = "Show API key",
+                checked = showKey,
+                onToggle = { showKey = !showKey },
+            )
+
+            ToggleRow(
+                label = "Allow insecure connection",
+                subtitle = "Trust self-signed certificates and allow http:// — for self-hosted servers " +
+                    "without a valid certificate. The API key may travel unencrypted.",
                 checked = state.allowInsecure,
                 onToggle = { viewModel.onInsecureChange(!state.allowInsecure) },
             )
@@ -104,7 +123,7 @@ fun SetupScreen(
             state.error?.let { error ->
                 Text(
                     text = error,
-                    color = Color(0xFFFF6E6E),
+                    color = AppColors.error,
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
@@ -114,9 +133,14 @@ fun SetupScreen(
     androidx.compose.runtime.LaunchedEffect(Unit) { urlFocus.requestFocus() }
 }
 
-/** D-pad-focusable checkbox row for opting into an insecure (self-signed / http://) connection. */
+/** D-pad-focusable checkbox row (OK toggles). */
 @Composable
-private fun InsecureToggle(checked: Boolean, onToggle: () -> Unit) {
+private fun ToggleRow(
+    label: String,
+    checked: Boolean,
+    onToggle: () -> Unit,
+    subtitle: String? = null,
+) {
     var focused by remember { mutableStateOf(false) }
     val borderColor =
         if (focused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.border
@@ -130,22 +154,25 @@ private fun InsecureToggle(checked: Boolean, onToggle: () -> Unit) {
             .border(2.dp, borderColor, RoundedCornerShape(8.dp))
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
-        Text(
-            text = if (checked) "☑" else "☐",
-            color = if (checked) MaterialTheme.colorScheme.primary else Color(0xFF9AA4AD),
-            fontSize = 26.sp,
+        Icon(
+            imageVector = if (checked) Icons.Filled.CheckBox else Icons.Filled.CheckBoxOutlineBlank,
+            contentDescription = null,
+            tint = if (checked) MaterialTheme.colorScheme.primary else AppColors.textSecondary,
+            modifier = Modifier.size(24.dp),
         )
         Column(modifier = Modifier.padding(start = 14.dp)) {
             Text(
-                text = "Allow insecure connection",
+                text = label,
                 color = MaterialTheme.colorScheme.onBackground,
                 style = MaterialTheme.typography.bodyLarge,
             )
-            Text(
-                text = "Trust self-signed certificates and allow http:// — for self-hosted servers without a valid certificate. The API key may travel unencrypted.",
-                color = Color(0xFF9AA4AD),
-                style = MaterialTheme.typography.bodySmall,
-            )
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    color = AppColors.textSecondary,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
         }
     }
 }
@@ -159,9 +186,11 @@ private fun TvTextField(
     keyboardType: KeyboardType,
     modifier: Modifier = Modifier,
     mask: Boolean = false,
+    imeAction: ImeAction = ImeAction.Next,
 ) {
     var focused by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
     val borderColor =
         if (focused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.border
 
@@ -181,7 +210,13 @@ private fun TvTextField(
             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
             keyboardOptions = KeyboardOptions(
                 keyboardType = keyboardType,
-                imeAction = ImeAction.Next,
+                imeAction = imeAction,
+            ),
+            // IME action hops to the next field / closes the keyboard, so the remote's "Next"/"Done"
+            // key behaves as expected instead of leaving the keyboard up to swallow D-pad presses.
+            keyboardActions = KeyboardActions(
+                onNext = { focusManager.moveFocus(FocusDirection.Down) },
+                onDone = { keyboard?.hide(); focusManager.moveFocus(FocusDirection.Down) },
             ),
             modifier = modifier
                 .fillMaxWidth()

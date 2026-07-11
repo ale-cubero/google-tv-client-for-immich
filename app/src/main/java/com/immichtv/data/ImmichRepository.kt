@@ -185,6 +185,7 @@ class ImmichRepository @Inject constructor(
                 previewUrl = previewUrl(assetId),
                 videoUrl = if (video) videoPlaybackUrl(assetId) else "",
                 motionVideoUrl = if (!video && motionClipId != null) videoPlaybackUrl(motionClipId) else "",
+                duration = if (video) formatDuration(duration.getOrNull(i)) else "",
             )
         }
 
@@ -198,6 +199,7 @@ class ImmichRepository @Inject constructor(
             previewUrl = previewUrl(id),
             videoUrl = if (video) videoPlaybackUrl(id) else "",
             motionVideoUrl = if (!video && livePhotoVideoId != null) videoPlaybackUrl(livePhotoVideoId) else "",
+            duration = if (video) formatDuration(duration) else "",
         )
     }
 
@@ -223,4 +225,27 @@ class ImmichRepository @Inject constructor(
         val base = settings.snapshot.baseUrl.toHttpUrlOrNull() ?: return ""
         return base.newBuilder().addPathSegments(path).query().build().toString()
     }
+}
+
+/**
+ * Normalize Immich's inconsistent `duration` — a "H:MM:SS.mmm" string in some payloads, a number
+ * of MILLISECONDS in others (verified against a live v3 server), or null — into a compact badge
+ * label: "2:34" or "1:02:34". Empty when unknown/zero.
+ */
+internal fun formatDuration(raw: kotlinx.serialization.json.JsonPrimitive?): String {
+    raw ?: return ""
+    val totalSeconds: Long = if (raw.isString) {
+        val parts = raw.content.substringBefore('.').split(':')
+        if (parts.size != 3) return ""
+        val (h, m, s) = parts.map { it.toLongOrNull() ?: return "" }
+        h * 3600 + m * 60 + s
+    } else {
+        val ms = raw.content.toDoubleOrNull() ?: return ""
+        (ms / 1000).toLong()
+    }
+    if (totalSeconds <= 0) return ""
+    val h = totalSeconds / 3600
+    val m = (totalSeconds % 3600) / 60
+    val s = totalSeconds % 60
+    return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
 }
