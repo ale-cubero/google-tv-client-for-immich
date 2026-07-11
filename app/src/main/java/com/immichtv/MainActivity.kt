@@ -72,8 +72,10 @@ private fun AppRoot(appViewModel: AppViewModel = hiltViewModel()) {
         composable(Routes.SETUP) {
             SetupScreen(
                 onConfigured = {
+                    // Clear the whole back stack so Home is the sole destination — works for first
+                    // launch, "change server", and re-login after logout alike.
                     navController.navigate(Routes.HOME) {
-                        popUpTo(Routes.SETUP) { inclusive = true }
+                        popUpTo(0) { inclusive = true }
                     }
                 },
             )
@@ -84,6 +86,14 @@ private fun AppRoot(appViewModel: AppViewModel = hiltViewModel()) {
                 onOpenViewer = { navController.navigate(Routes.VIEWER) },
                 onOpenAlbum = { id, title -> navController.navigate(Routes.collection("album", id, title)) },
                 onOpenPerson = { id, name -> navController.navigate(Routes.collection("person", id, name)) },
+                // Reopen setup with current values prefilled (Back cancels, returning Home).
+                onChangeServer = { navController.navigate(Routes.SETUP) },
+                // After logout the settings are already cleared; drop Home from the stack.
+                onLoggedOut = {
+                    navController.navigate(Routes.SETUP) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
             )
         }
         composable(Routes.TIMELINE) {

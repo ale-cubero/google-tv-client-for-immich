@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.immichtv.data.ImmichRepository
 import com.immichtv.data.ViewerQueue
+import com.immichtv.data.prefs.SettingsRepository
 import com.immichtv.domain.Album
 import com.immichtv.domain.Asset
 import com.immichtv.domain.Memory
@@ -34,6 +35,7 @@ sealed interface HomeUiState {
 class HomeViewModel @Inject constructor(
     private val repository: ImmichRepository,
     private val viewerQueue: ViewerQueue,
+    private val settings: SettingsRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
@@ -68,4 +70,12 @@ class HomeViewModel @Inject constructor(
 
     /** Stage an asset list for the viewer before navigating to it. */
     fun openAssets(assets: List<Asset>, index: Int) = viewerQueue.set(assets, index)
+
+    /** Clear stored server URL + API key, then invoke [onDone] to navigate back to setup. */
+    fun logout(onDone: () -> Unit) {
+        viewModelScope.launch {
+            settings.clear()
+            onDone()
+        }
+    }
 }

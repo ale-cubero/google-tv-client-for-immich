@@ -58,6 +58,12 @@ class SettingsRepository @Inject constructor(
         snapshot = settings
     }
 
+    /** Wipe all persisted server settings (logout) and reset the in-memory snapshot. */
+    suspend fun clear() {
+        dataStore.edit { it.clear() }
+        snapshot = ServerSettings()
+    }
+
     suspend fun save(settings: ServerSettings) {
         dataStore.edit {
             it[keyUrl] = settings.baseUrl

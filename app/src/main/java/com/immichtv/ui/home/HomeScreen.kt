@@ -61,9 +61,12 @@ fun HomeScreen(
     onOpenViewer: () -> Unit,
     onOpenAlbum: (id: String, title: String) -> Unit,
     onOpenPerson: (id: String, name: String) -> Unit,
+    onChangeServer: () -> Unit,
+    onLoggedOut: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    var showMenu by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
 
     Box(
@@ -84,17 +87,25 @@ fun HomeScreen(
             )
         }
 
-        // Small "About" affordance, overscan-safe in the top-right corner.
-        AboutButton(
-            onClick = { showAbout = true },
+        // Overscan-safe settings affordance in the top-right corner.
+        SettingsButton(
+            onClick = { showMenu = true },
             modifier = Modifier.align(Alignment.TopEnd).padding(top = 40.dp, end = 48.dp),
         )
+        if (showMenu) {
+            SettingsMenu(
+                onChangeServer = { showMenu = false; onChangeServer() },
+                onLogout = { showMenu = false; viewModel.logout(onLoggedOut) },
+                onAbout = { showMenu = false; showAbout = true },
+                onDismiss = { showMenu = false },
+            )
+        }
         if (showAbout) AboutDialog(onDismiss = { showAbout = false })
     }
 }
 
 @Composable
-private fun AboutButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun SettingsButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
     var focused by remember { mutableStateOf(false) }
     val border = if (focused) Color.White else Color(0x66FFFFFF)
     Box(
@@ -106,9 +117,64 @@ private fun AboutButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
             .padding(horizontal = 18.dp, vertical = 8.dp),
     ) {
         Text(
-            text = "ⓘ  About",
+            text = "⚙  Settings",
             color = if (focused) Color.White else Color(0xFFB8C0C8),
             style = MaterialTheme.typography.labelLarge,
+        )
+    }
+}
+
+@Composable
+private fun SettingsMenu(
+    onChangeServer: () -> Unit,
+    onLogout: () -> Unit,
+    onAbout: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    BackHandler(enabled = true, onBack = onDismiss)
+    val firstItem = remember { FocusRequester() }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0x99000000))
+            .clickable(onClick = onDismiss), // OK/click outside the panel dismisses
+        contentAlignment = Alignment.TopEnd,
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier
+                .padding(top = 84.dp, end = 48.dp)
+                .widthIn(min = 280.dp)
+                .background(Color(0xFF11161B), RoundedCornerShape(14.dp))
+                .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(14.dp))
+                .padding(10.dp),
+        ) {
+            MenuItem("🔌  Change server", Modifier.focusRequester(firstItem), onChangeServer)
+            MenuItem("🚪  Logout", onClick = onLogout)
+            MenuItem("ⓘ  About", onClick = onAbout)
+        }
+    }
+    LaunchedEffect(Unit) { runCatching { firstItem.requestFocus() } }
+}
+
+@Composable
+private fun MenuItem(text: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .onFocusChanged { focused = it.isFocused }
+            .clickable(onClick = onClick)
+            .background(
+                if (focused) Color(0xFF2A333B) else Color.Transparent,
+                RoundedCornerShape(8.dp),
+            )
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+    ) {
+        Text(
+            text = text,
+            color = if (focused) Color.White else Color(0xFFB8C0C8),
+            style = MaterialTheme.typography.bodyLarge,
         )
     }
 }
