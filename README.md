@@ -17,13 +17,22 @@ A native **Android TV / Google TV** client for a self-hosted [Immich](https://im
 
 ## Screenshots
 
+The app ships with **dark and light themes**, styled after Immich's own colors.
+
 **Home** — memories, recent, albums, people, and videos rails
-![Home screen](docs/screenshots/home.png)
+
+| Dark | Light |
+| --- | --- |
+| ![Home screen, dark](docs/screenshots/home.png) | ![Home screen, light](docs/screenshots/home-light.png) |
 
 **Timeline** — bucketed grid with a year scrubber on the right edge
-![Timeline with year scrubber](docs/screenshots/timeline.png)
 
-**Viewer** — full‑screen photo with the metadata panel (OK on a photo)
+| Dark | Light |
+| --- | --- |
+| ![Timeline, dark](docs/screenshots/timeline.png) | ![Timeline, light](docs/screenshots/timeline-light.png) |
+
+**Viewer** — full‑screen photo with the metadata panel (OK on a photo). The viewer stays dark in both themes, as photos and videos look best on black.
+
 ![Viewer with metadata panel](docs/screenshots/viewer-metadata.png)
 
 <sub>Screenshots taken against the public <a href="https://demo.immich.app">Immich demo library</a> — no personal data.</sub>
