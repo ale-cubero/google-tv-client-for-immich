@@ -13,24 +13,26 @@ import androidx.tv.material3.lightColorScheme
 /** User-selectable UI theme, persisted in settings. */
 enum class ThemeMode { DARK, LIGHT }
 
+// Palette matches Immich's own brand colors (web `app.css`): indigo primary in light,
+// light-blue primary in dark, near-black surfaces (#0A0A0A bg, #212121 cards) in dark.
 private val ImmichDarkColors = darkColorScheme(
-    primary = Color(0xFF4FC3F7),
-    onPrimary = Color(0xFF00131F),
-    surface = Color(0xFF161A1E),
-    onSurface = Color(0xFFE6E9EC),
-    background = Color(0xFF0B0E11),
-    onBackground = Color(0xFFE6E9EC),
-    border = Color(0xFF2A3138),
+    primary = Color(0xFFACCBFA),      // --immich-dark-primary
+    onPrimary = Color(0xFF0A0F1A),
+    surface = Color(0xFF212121),      // --immich-dark-gray (cards/panels)
+    onSurface = Color(0xFFE5E7EB),    // --immich-dark-fg
+    background = Color(0xFF0A0A0A),   // --immich-dark-bg
+    onBackground = Color(0xFFE5E7EB),
+    border = Color(0xFF2E2E2E),
 )
 
 private val ImmichLightColors = lightColorScheme(
-    primary = Color(0xFF0277BD),
+    primary = Color(0xFF4250AF),      // --immich-primary
     onPrimary = Color(0xFFFFFFFF),
     surface = Color(0xFFFFFFFF),
-    onSurface = Color(0xFF1B2530),
-    background = Color(0xFFF4F6F8),
-    onBackground = Color(0xFF1B2530),
-    border = Color(0xFFCBD3DA),
+    onSurface = Color(0xFF0A0A0A),    // --immich-fg (near-black)
+    background = Color(0xFFFFFFFF),   // --immich-bg
+    onBackground = Color(0xFF0A0A0A),
+    border = Color(0xFFDDE0EC),
 )
 
 /**
@@ -60,37 +62,37 @@ data class AppColorScheme(
 )
 
 val DarkAppColors = AppColorScheme(
-    placeholder = Color(0xFF20262C),
-    textSecondary = Color(0xFF9AA4AD),
-    textTertiary = Color(0xFF6D7680),
-    panel = Color(0xFF11161B),
-    panelTranslucent = Color(0xF00E1216),
-    rail = Color(0xFF0E1216),
+    placeholder = Color(0xFF212121),   // Immich dark-gray card color
+    textSecondary = Color(0xFF9CA3AF),
+    textTertiary = Color(0xFF6B7280),
+    panel = Color(0xFF212121),         // menus/dialogs = Immich card gray
+    panelTranslucent = Color(0xF00A0A0A),
+    rail = Color(0xFF141414),
     scrim = Color(0xCC000000),
     chip = Color(0x88000000),
-    outline = Color(0x33FFFFFF),
-    error = Color(0xFFFF6E6E),
+    outline = Color(0x1FFFFFFF),
+    error = Color(0xFFF87171),
     chromeBg = Color(0x33000000),
     chromeBorder = Color(0x66FFFFFF),
-    onChrome = Color(0xFFB8C0C8),
-    menuFocus = Color(0xFF2A333B),
+    onChrome = Color(0xFFC3C8CF),
+    menuFocus = Color(0xFF33373B),     // hover/focus lighter than the #212121 panel
 )
 
 val LightAppColors = AppColorScheme(
-    placeholder = Color(0xFFDDE3E8),
-    textSecondary = Color(0xFF566573),
-    textTertiary = Color(0xFF8A94A0),
+    placeholder = Color(0xFFE3E6F0),
+    textSecondary = Color(0xFF5B6472),
+    textTertiary = Color(0xFF8A93A3),
     panel = Color(0xFFFFFFFF),
-    panelTranslucent = Color(0xF00E1216), // viewer stays dark
-    rail = Color(0xFFEDEFF2),
+    panelTranslucent = Color(0xF00A0A0A), // viewer stays dark
+    rail = Color(0xFFEEF0F7),
     scrim = Color(0xCC000000),
     chip = Color(0x88000000),
-    outline = Color(0x22000000),
-    error = Color(0xFFC62828),
+    outline = Color(0x1F000000),
+    error = Color(0xFFB3261E),
     chromeBg = Color(0x0D000000),
     chromeBorder = Color(0x33000000),
     onChrome = Color(0xFF3A434D),
-    menuFocus = Color(0xFFE1E7EC),
+    menuFocus = Color(0xFFE7EAF6),     // subtle indigo-tinted focus (matches primary)
 )
 
 val LocalAppColors = staticCompositionLocalOf { DarkAppColors }
