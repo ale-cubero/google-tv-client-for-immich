@@ -55,6 +55,11 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -119,6 +124,35 @@ private fun TimelineContent(
     val firstCell = remember { FocusRequester() }
     val targetCell = remember { FocusRequester() }
 
+    // Where focus should land when stepping LEFT out of the year scrubber back into the grid: the
+    // visible cell nearest the pivot line (the year you just scrubbed to). Without this, the grid's
+    // focusRestorer would restore the stale previously-focused cell — jumping to another year.
+    val enterCell = remember { FocusRequester() }
+    var enterCellKey by remember { mutableStateOf<String?>(null) }
+    // The cell that opened the viewer, re-focused on return (replaces focusRestorer, which would
+    // fight the scrubber-entry redirect above by restoring its own remembered cell instead).
+    val restoreCell = remember { FocusRequester() }
+    var restoreKey by remember { mutableStateOf<String?>(null) }
+    val onEnterGrid: () -> Unit = {
+        val info = gridState.layoutInfo
+        val pivotY = info.viewportStartOffset +
+            (info.viewportEndOffset - info.viewportStartOffset) * PIVOT_FRACTION
+        enterCellKey = info.visibleItemsInfo
+            .filter { (it.key as? String)?.startsWith("c:") == true }
+            .minByOrNull { kotlin.math.abs((it.offset.y + it.size.height / 2f) - pivotY) }
+            ?.key as? String
+    }
+    LaunchedEffect(enterCellKey) {
+        if (enterCellKey != null) {
+            runCatching { enterCell.requestFocus() }
+            enterCellKey = null
+        }
+    }
+    // Returning from the viewer: put focus back on the cell it was opened from.
+    androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+        if (restoreKey != null) scope.launch { runCatching { restoreCell.requestFocus() } }
+    }
+
     // When arriving from the viewer's "Go to this day", resolve the month bucket to land on.
     val targetBucket = remember(buckets) {
         viewModel.targetMonth.takeIf { it.isNotBlank() }
@@ -172,8 +206,7 @@ private fun TimelineContent(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     contentPadding = PaddingValues(start = 48.dp, end = 16.dp, top = 27.dp, bottom = 80.dp),
-                    // Restore the exact cell when returning from the viewer.
-                    modifier = Modifier.focusRestorer().fillMaxSize(),
+                    modifier = Modifier.fillMaxSize(),
                 ) {
                     buckets.forEachIndexed { bucketIndex, bucket ->
                         item(
@@ -191,7 +224,10 @@ private fun TimelineContent(
                             val asset = viewModel.assetAt(bucket.timeBucket, i)
                             val isTargetCell = targetBucket?.timeBucket == bucket.timeBucket &&
                                 viewModel.targetAssetId.isNotBlank() && asset?.id == viewModel.targetAssetId
+                            val cellKey = "c:${bucket.timeBucket}:$i"
                             val cellModifier = when {
+                                enterCellKey == cellKey -> Modifier.focusRequester(enterCell)
+                                restoreKey == cellKey -> Modifier.focusRequester(restoreCell)
                                 isTargetCell -> Modifier.focusRequester(targetCell)
                                 bucketIndex == 0 && i == 0 -> Modifier.focusRequester(firstCell)
                                 else -> Modifier
@@ -200,6 +236,7 @@ private fun TimelineContent(
                                 asset = asset,
                                 modifier = cellModifier,
                                 onClick = {
+                                    restoreKey = cellKey
                                     if (viewModel.prepareViewer(bucket.timeBucket, i)) onOpenViewer()
                                 },
                             )
@@ -213,6 +250,7 @@ private fun TimelineContent(
             buckets = buckets,
             currentYear = currentYear,
             onScrubToIndex = { flatIndex -> scope.launch { gridState.scrollToItem(flatIndex) } },
+            onEnterGrid = onEnterGrid,
             modifier = Modifier.fillMaxHeight(),
         )
     }
@@ -271,6 +309,7 @@ private fun YearScrubber(
     buckets: List<BucketMeta>,
     currentYear: Int,
     onScrubToIndex: (Int) -> Unit,
+    onEnterGrid: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // First bucket (flat index) of each distinct year, newest first.
@@ -308,6 +347,16 @@ private fun YearScrubber(
                     .background(
                         if (focused) MaterialTheme.colorScheme.primary else Color.Transparent,
                     )
+                    // Stepping LEFT into the grid: land on the year now on screen, not the stale cell
+                    // the grid's focusRestorer would otherwise restore (which jumps to another year).
+                    // Preview phase: intercept before the focus system runs its default LEFT traversal.
+                    .onPreviewKeyEvent { e ->
+                        if (e.type == KeyEventType.KeyDown && e.key == Key.DirectionLeft) {
+                            onEnterGrid(); true
+                        } else {
+                            false
+                        }
+                    }
                     .onFocusChanged {
                         focused = it.isFocused
                         if (it.isFocused) onScrubToIndex(flatIndex)
