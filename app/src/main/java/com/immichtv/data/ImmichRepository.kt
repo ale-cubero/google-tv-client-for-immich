@@ -66,11 +66,14 @@ class ImmichRepository @Inject constructor(
             )
         }
 
-    /** "On this day" memories, newest first, titled by how long ago. */
+    /** "On this day" memories for TODAY, newest first, titled by how long ago. */
     suspend fun getMemories(): List<Memory> {
         val thisYear = Year.now().value
         val strings = stringsFor(settings.languageSnapshot)
-        return api.getMemories()
+        // Ask for today's memories only (local calendar date at midnight, UTC-stamped like Immich's
+        // stored showAt). Recomputed on every load, so the rail follows the current day.
+        val today = "${java.time.LocalDate.now()}T00:00:00.000Z"
+        return api.getMemories(forDate = today)
             .filter { it.assets.isNotEmpty() }
             .map { dto ->
                 val yearsAgo = (thisYear - dto.data.year).coerceAtLeast(0)
