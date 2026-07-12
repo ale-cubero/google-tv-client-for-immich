@@ -71,7 +71,9 @@ import com.immichtv.ui.theme.AppColors
 import com.immichtv.domain.Asset
 import com.immichtv.domain.BucketMeta
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 private const val COLUMNS = 6
 
@@ -111,6 +113,13 @@ private fun TimelineContent(
     val gridState = rememberLazyGridState()
     val scope = rememberCoroutineScope()
     val firstCell = remember { FocusRequester() }
+    val targetCell = remember { FocusRequester() }
+
+    // When arriving from the viewer's "Go to this day", resolve the month bucket to land on.
+    val targetBucket = remember(buckets) {
+        viewModel.targetMonth.takeIf { it.isNotBlank() }
+            ?.let { m -> buckets.firstOrNull { it.timeBucket.take(7) == m } }
+    }
 
     // Keep the focused row ~35% from the top instead of just barely on-screen (pivot feel).
     val pivotSpec = remember {
@@ -165,10 +174,14 @@ private fun TimelineContent(
                             key = { i -> "c:${bucket.timeBucket}:$i" },
                             contentType = { "cell" },
                         ) { i ->
-                            val cellModifier =
-                                if (bucketIndex == 0 && i == 0) Modifier.focusRequester(firstCell)
-                                else Modifier
                             val asset = viewModel.assetAt(bucket.timeBucket, i)
+                            val isTargetCell = targetBucket?.timeBucket == bucket.timeBucket &&
+                                viewModel.targetAssetId.isNotBlank() && asset?.id == viewModel.targetAssetId
+                            val cellModifier = when {
+                                isTargetCell -> Modifier.focusRequester(targetCell)
+                                bucketIndex == 0 && i == 0 -> Modifier.focusRequester(firstCell)
+                                else -> Modifier
+                            }
                             ThumbnailCell(
                                 asset = asset,
                                 modifier = cellModifier,
@@ -190,9 +203,25 @@ private fun TimelineContent(
         )
     }
 
-    LaunchedEffect(Unit) {
-        // First cell is a focusable placeholder even before its image loads.
-        runCatching { firstCell.requestFocus() }
+    if (targetBucket == null) {
+        LaunchedEffect(Unit) {
+            // First cell is a focusable placeholder even before its image loads.
+            runCatching { firstCell.requestFocus() }
+        }
+    } else {
+        // Arrived from "Go to this day": jump to the month, wait for it to load, then land on the
+        // exact asset. Scrolling to the header makes the bucket visible so the ViewModel loads it.
+        LaunchedEffect(targetBucket.timeBucket) {
+            runCatching { gridState.scrollToItem(targetBucket.flatIndex) }
+            val idx = withTimeoutOrNull(6_000) {
+                snapshotFlow { viewModel.assetIndex(targetBucket.timeBucket, viewModel.targetAssetId) }
+                    .first { it >= 0 }
+            }
+            // Compose the exact cell (it may be far into a large month), then focus it.
+            runCatching { gridState.scrollToItem(targetBucket.flatIndex + 1 + (idx ?: 0)) }
+            runCatching { targetCell.requestFocus() }
+                .onFailure { runCatching { firstCell.requestFocus() } }
+        }
     }
 }
 

@@ -59,7 +59,11 @@ import javax.inject.Inject
 private object Routes {
     const val SETUP = "setup"
     const val HOME = "home"
-    const val TIMELINE = "timeline"
+    // Optional target lets the viewer jump to a specific asset's day: month = "YYYY-MM", asset = id.
+    // Blank (the Home entry point) just opens the timeline at the top.
+    const val TIMELINE = "timeline?month={month}&asset={asset}"
+    fun timeline(month: String = "", asset: String = "") =
+        "timeline?month=${Uri.encode(month)}&asset=${Uri.encode(asset)}"
     const val SEARCH = "search"
     const val VIEWER = "viewer"
     const val COLLECTION = "collection/{source}/{id}?title={title}"
@@ -127,7 +131,7 @@ private fun AppContent(appViewModel: AppViewModel) {
         }
         composable(Routes.HOME) {
             HomeScreen(
-                onOpenTimeline = { navController.navigate(Routes.TIMELINE) },
+                onOpenTimeline = { navController.navigate(Routes.timeline()) },
                 onOpenSearch = { navController.navigate(Routes.SEARCH) },
                 onOpenViewer = { navController.navigate(Routes.VIEWER) },
                 onOpenAlbum = { id, title -> navController.navigate(Routes.collection("album", id, title)) },
@@ -143,7 +147,13 @@ private fun AppContent(appViewModel: AppViewModel) {
                 },
             )
         }
-        composable(Routes.TIMELINE) {
+        composable(
+            route = Routes.TIMELINE,
+            arguments = listOf(
+                navArgument("month") { type = NavType.StringType; defaultValue = "" },
+                navArgument("asset") { type = NavType.StringType; defaultValue = "" },
+            ),
+        ) {
             TimelineScreen(onOpenViewer = { navController.navigate(Routes.VIEWER) })
         }
         composable(Routes.SEARCH) {
@@ -160,7 +170,12 @@ private fun AppContent(appViewModel: AppViewModel) {
             CollectionScreen(onOpenViewer = { navController.navigate(Routes.VIEWER) })
         }
         composable(Routes.VIEWER) {
-            ViewerScreen()
+            ViewerScreen(
+                // Jump from a viewed asset to its day in the timeline (memories, search results, …).
+                onOpenTimelineAt = { month, assetId ->
+                    navController.navigate(Routes.timeline(month, assetId))
+                },
+            )
         }
     }
 }

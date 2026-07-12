@@ -50,7 +50,13 @@ class TimelineViewModel @Inject constructor(
     private val repository: ImmichRepository,
     private val viewerQueue: ViewerQueue,
     private val settings: com.immichtv.data.prefs.SettingsRepository,
+    savedStateHandle: androidx.lifecycle.SavedStateHandle,
 ) : ViewModel() {
+
+    // Optional jump target (set when arriving from the viewer's "Go to this day"): the asset's
+    // month ("YYYY-MM") and id. Blank when opened normally from Home.
+    val targetMonth: String = savedStateHandle.get<String>("month").orEmpty()
+    val targetAssetId: String = savedStateHandle.get<String>("asset").orEmpty()
 
     private val _state = MutableStateFlow<TimelineUiState>(TimelineUiState.Loading)
     val state: StateFlow<TimelineUiState> = _state.asStateFlow()
@@ -87,6 +93,10 @@ class TimelineViewModel @Inject constructor(
     }
 
     fun assetAt(timeBucket: String, index: Int): Asset? = loaded[timeBucket]?.getOrNull(index)
+
+    /** Position of [assetId] within an already-loaded bucket, or -1 if the bucket isn't loaded yet. */
+    fun assetIndex(timeBucket: String, assetId: String): Int =
+        loaded[timeBucket]?.indexOfFirst { it.id == assetId } ?: -1
 
     /** Stage the clicked month's assets for the viewer. Returns false if not loaded yet. */
     fun prepareViewer(timeBucket: String, index: Int): Boolean {

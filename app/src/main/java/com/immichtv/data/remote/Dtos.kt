@@ -163,6 +163,9 @@ data class AssetDto(
     val type: String = "IMAGE", // "IMAGE" | "VIDEO"
     @SerialName("originalFileName") val originalFileName: String = "",
     val livePhotoVideoId: String? = null, // set on motion-photo stills → the hidden motion clip
+    // Local capture time ("YYYY-MM-DDT…"); used to jump from the viewer to this asset's day in the
+    // timeline. Absent on timeline-bucket assets (columnar payload), so the jump button is hidden there.
+    val localDateTime: String? = null,
     // Immich formats duration inconsistently ("H:MM:SS.mmm" string, number of seconds, or null) —
     // take the raw primitive and normalize in the repository. (A typed String? failed parsing before.)
     val duration: JsonPrimitive? = null,

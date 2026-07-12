@@ -28,18 +28,21 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.MotionPhotosOn
 import androidx.compose.material.icons.filled.Slideshow
 import androidx.compose.material.icons.filled.Warning
@@ -101,16 +104,20 @@ private const val POSITION_CHIP_MS = 2_000L
 
 @Composable
 fun ViewerScreen(
+    onOpenTimelineAt: (month: String, assetId: String) -> Unit = { _, _ -> },
     viewModel: ViewerViewModel = hiltViewModel(),
 ) {
     // Full-screen media viewer: always dark, regardless of the app's light/dark setting.
     ImmichTvTheme(mode = ThemeMode.DARK) {
-        ViewerContent(viewModel)
+        ViewerContent(viewModel, onOpenTimelineAt)
     }
 }
 
 @Composable
-private fun ViewerContent(viewModel: ViewerViewModel) {
+private fun ViewerContent(
+    viewModel: ViewerViewModel,
+    onOpenTimelineAt: (month: String, assetId: String) -> Unit,
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -127,6 +134,7 @@ private fun ViewerContent(viewModel: ViewerViewModel) {
                 startIndex = s.startIndex,
                 player = rememberExoPlayer(viewModel),
                 viewModel = viewModel,
+                onOpenTimelineAt = onOpenTimelineAt,
             )
         }
     }
@@ -154,6 +162,7 @@ private fun ViewerPager(
     startIndex: Int,
     player: ExoPlayer,
     viewModel: ViewerViewModel,
+    onOpenTimelineAt: (month: String, assetId: String) -> Unit,
 ) {
     // The asset list can grow while paging (cross-month continuation from the timeline).
     val assets by viewModel.assets.collectAsStateWithLifecycle()
@@ -396,11 +405,16 @@ private fun ViewerPager(
                         }
                         Key.DirectionCenter, Key.Enter -> {
                             slideshow = false
-                            // OK: play/pause a video, play a motion photo's clip on demand,
-                            // or toggle the detail panel on a plain photo. (Details = Down.)
+                            val cur = current
                             when {
+                                // Detail panel open on a dated asset: OK jumps to that asset's day in
+                                // the timeline (the "Go to this day" button shown in the panel).
+                                showInfo && cur != null && cur.dateTime.isNotBlank() ->
+                                    onOpenTimelineAt(cur.dateTime.take(7), cur.id)
+                                // Otherwise OK: play/pause a video, play a motion photo's clip on
+                                // demand, or toggle the detail panel on a plain photo. (Details = Down.)
                                 onVideo -> if (player.isPlaying) player.pause() else player.play()
-                                current?.hasMotion == true -> { showInfo = false; playMotion() }
+                                cur?.hasMotion == true -> { showInfo = false; playMotion() }
                                 else -> showInfo = !showInfo
                             }
                             true
@@ -488,6 +502,7 @@ private fun ViewerPager(
                     total = assets.size,
                     isPlaying = isPlaying,
                     hdr = hdrLabel,
+                    canGoToDay = current?.dateTime?.isNotBlank() == true,
                     scroll = panelScroll,
                     modifier = Modifier.weight(0.36f).fillMaxHeight(),
                 )
@@ -715,6 +730,7 @@ private fun MetadataSidePanel(
     total: Int,
     isPlaying: Boolean,
     hdr: String?,
+    canGoToDay: Boolean,
     scroll: androidx.compose.foundation.ScrollState,
     modifier: Modifier = Modifier,
 ) {
@@ -728,6 +744,11 @@ private fun MetadataSidePanel(
             .padding(horizontal = 36.dp, vertical = 54.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
+        // Activated by OK while the panel is open (see the viewer's key handler). Not separately
+        // focusable — the viewer owns D-pad focus — so it's styled as a button with an OK affordance.
+        if (canGoToDay) {
+            GoToDayButton(str.viewerGoToDay)
+        }
         Text(
             text = loaded?.fileName?.takeIf { it.isNotBlank() } ?: kind,
             color = Color.White,
@@ -756,6 +777,46 @@ private fun MetadataSidePanel(
                 LabeledRow(str.metaPeople, detail.detail.people.joinToString(", "))
             }
         }
+    }
+}
+
+/**
+ * "Go to this day" call-to-action at the top of the metadata panel. It isn't independently
+ * focusable (the viewer owns D-pad focus for paging), so it's presented as a filled button with an
+ * OK badge; pressing OK while the panel is open triggers the jump (handled in the viewer key logic).
+ */
+@Composable
+private fun GoToDayButton(label: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp))
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+    ) {
+        Icon(
+            Icons.Filled.CalendarMonth,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onPrimary,
+            modifier = Modifier.size(20.dp),
+        )
+        Spacer(Modifier.width(10.dp))
+        Text(
+            text = label,
+            color = MaterialTheme.colorScheme.onPrimary,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = "OK",
+            color = MaterialTheme.colorScheme.onPrimary,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .background(Color(0x33FFFFFF), RoundedCornerShape(6.dp))
+                .padding(horizontal = 8.dp, vertical = 3.dp),
+        )
     }
 }
 

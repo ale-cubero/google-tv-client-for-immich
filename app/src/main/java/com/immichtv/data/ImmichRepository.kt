@@ -242,6 +242,7 @@ class ImmichRepository @Inject constructor(
             videoUrl = if (video) videoPlaybackUrl(id) else "",
             motionVideoUrl = if (!video && livePhotoVideoId != null) videoPlaybackUrl(livePhotoVideoId) else "",
             duration = if (video) formatDuration(duration) else "",
+            dateTime = localDateTime.orEmpty(),
         )
     }
 

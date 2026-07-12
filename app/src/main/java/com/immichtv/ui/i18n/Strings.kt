@@ -111,6 +111,7 @@ interface Strings {
     val viewerLive: String
     val viewerLiveHint: String
     val viewerVideoError: String
+    val viewerGoToDay: String
     val metaLoading: String
     val metaUnavailable: String
     val metaDynamicRange: String
@@ -228,7 +229,8 @@ object En : Strings {
     override val viewerLive = "LIVE"
     override val viewerLiveHint = "LIVE  ·  OK to play"
     override val viewerVideoError = "Can't play this video.\nThe server may be offline or unreachable."
-    override val metaLoading = "Loading details…"
+    override val viewerGoToDay = "Go to this day"
+    override val metaLoading ="Loading details…"
     override val metaUnavailable = "Details unavailable"
     override val metaDynamicRange = "Dynamic range"
     override val metaDate = "Date"
@@ -349,6 +351,7 @@ object Es : Strings {
     override val viewerLiveHint = "EN VIVO  ·  OK para reproducir"
     override val viewerVideoError =
         "No se puede reproducir este video.\nEl servidor puede estar apagado o inaccesible."
+    override val viewerGoToDay = "Ir a este día"
     override val metaLoading = "Cargando detalles…"
     override val metaUnavailable = "Detalles no disponibles"
     override val metaDynamicRange = "Rango dinámico"
@@ -470,6 +473,7 @@ object Pt : Strings {
     override val viewerLiveHint = "AO VIVO  ·  OK para reproduzir"
     override val viewerVideoError =
         "Não é possível reproduzir este vídeo.\nO servidor pode estar offline ou inacessível."
+    override val viewerGoToDay = "Ir para este dia"
     override val metaLoading = "Carregando detalhes…"
     override val metaUnavailable = "Detalhes indisponíveis"
     override val metaDynamicRange = "Faixa dinâmica"
@@ -591,6 +595,7 @@ object It : Strings {
     override val viewerLiveHint = "LIVE  ·  OK per riprodurre"
     override val viewerVideoError =
         "Impossibile riprodurre questo video.\nIl server potrebbe essere offline o irraggiungibile."
+    override val viewerGoToDay = "Vai a questo giorno"
     override val metaLoading = "Caricamento dettagli…"
     override val metaUnavailable = "Dettagli non disponibili"
     override val metaDynamicRange = "Gamma dinamica"

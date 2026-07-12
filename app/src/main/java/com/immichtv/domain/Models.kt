@@ -91,6 +91,7 @@ data class Asset(
     val videoUrl: String,        // /video/playback — empty for images
     val motionVideoUrl: String = "", // motion-photo clip playback URL — empty unless a live/motion photo
     val duration: String = "",   // formatted video duration ("2:34", "1:02:34"); empty for images/unknown
+    val dateTime: String = "",   // ISO local capture time ("YYYY-MM-DD…"); empty if unknown. Drives "go to this day".
 ) {
     /** A still photo that carries an embedded motion clip (Samsung/Apple/Google live photo). */
     val hasMotion: Boolean get() = !isVideo && motionVideoUrl.isNotEmpty()
