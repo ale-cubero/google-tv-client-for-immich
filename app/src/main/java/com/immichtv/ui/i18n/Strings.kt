@@ -112,6 +112,10 @@ interface Strings {
     val viewerLiveHint: String
     val viewerVideoError: String
     val viewerGoToDay: String
+    val viewerActionPlayMotion: String
+    val viewerActionPlay: String
+    val viewerActionPause: String
+    val viewerActionSlideshow: String
     val metaLoading: String
     val metaUnavailable: String
     val metaDynamicRange: String
@@ -224,12 +228,16 @@ object En : Strings {
     override fun results(n: Int) = if (n == 1) "1 result" else "$n results"
 
     override val viewerHints =
-        "OK play/pause · ◀ ▶ prev/next · hold ◀ ▶ seek · ▼ details · ⏯ slideshow"
+        "OK options · ◀ ▶ prev/next · hold ◀ ▶ seek · ▼ details"
     override val viewerSlideshow = "Slideshow"
     override val viewerLive = "LIVE"
-    override val viewerLiveHint = "LIVE  ·  OK to play"
+    override val viewerLiveHint = "LIVE"
     override val viewerVideoError = "Can't play this video.\nThe server may be offline or unreachable."
     override val viewerGoToDay = "Go to this day"
+    override val viewerActionPlayMotion = "Play motion photo"
+    override val viewerActionPlay = "Play"
+    override val viewerActionPause = "Pause"
+    override val viewerActionSlideshow = "Start slideshow"
     override val metaLoading ="Loading details…"
     override val metaUnavailable = "Details unavailable"
     override val metaDynamicRange = "Dynamic range"
@@ -345,13 +353,17 @@ object Es : Strings {
     override fun results(n: Int) = if (n == 1) "1 resultado" else "$n resultados"
 
     override val viewerHints =
-        "OK reproducir/pausar · ◀ ▶ anterior/siguiente · mantén ◀ ▶ avanzar · ▼ detalles · ⏯ presentación"
+        "OK opciones · ◀ ▶ anterior/siguiente · mantén ◀ ▶ avanzar · ▼ detalles"
     override val viewerSlideshow = "Presentación"
     override val viewerLive = "EN VIVO"
-    override val viewerLiveHint = "EN VIVO  ·  OK para reproducir"
+    override val viewerLiveHint = "EN VIVO"
     override val viewerVideoError =
         "No se puede reproducir este video.\nEl servidor puede estar apagado o inaccesible."
     override val viewerGoToDay = "Ir a este día"
+    override val viewerActionPlayMotion = "Reproducir foto en movimiento"
+    override val viewerActionPlay = "Reproducir"
+    override val viewerActionPause = "Pausar"
+    override val viewerActionSlideshow = "Iniciar presentación"
     override val metaLoading = "Cargando detalles…"
     override val metaUnavailable = "Detalles no disponibles"
     override val metaDynamicRange = "Rango dinámico"
@@ -467,13 +479,17 @@ object Pt : Strings {
     override fun results(n: Int) = if (n == 1) "1 resultado" else "$n resultados"
 
     override val viewerHints =
-        "OK reproduzir/pausar · ◀ ▶ anterior/próximo · segure ◀ ▶ avançar · ▼ detalhes · ⏯ apresentação"
+        "OK opções · ◀ ▶ anterior/próximo · segure ◀ ▶ avançar · ▼ detalhes"
     override val viewerSlideshow = "Apresentação"
     override val viewerLive = "AO VIVO"
-    override val viewerLiveHint = "AO VIVO  ·  OK para reproduzir"
+    override val viewerLiveHint = "AO VIVO"
     override val viewerVideoError =
         "Não é possível reproduzir este vídeo.\nO servidor pode estar offline ou inacessível."
     override val viewerGoToDay = "Ir para este dia"
+    override val viewerActionPlayMotion = "Reproduzir foto em movimento"
+    override val viewerActionPlay = "Reproduzir"
+    override val viewerActionPause = "Pausar"
+    override val viewerActionSlideshow = "Iniciar apresentação"
     override val metaLoading = "Carregando detalhes…"
     override val metaUnavailable = "Detalhes indisponíveis"
     override val metaDynamicRange = "Faixa dinâmica"
@@ -589,13 +605,17 @@ object It : Strings {
     override fun results(n: Int) = if (n == 1) "1 risultato" else "$n risultati"
 
     override val viewerHints =
-        "OK riproduci/pausa · ◀ ▶ prec/succ · tieni ◀ ▶ scorri · ▼ dettagli · ⏯ presentazione"
+        "OK opzioni · ◀ ▶ prec/succ · tieni ◀ ▶ scorri · ▼ dettagli"
     override val viewerSlideshow = "Presentazione"
     override val viewerLive = "LIVE"
-    override val viewerLiveHint = "LIVE  ·  OK per riprodurre"
+    override val viewerLiveHint = "LIVE"
     override val viewerVideoError =
         "Impossibile riprodurre questo video.\nIl server potrebbe essere offline o irraggiungibile."
     override val viewerGoToDay = "Vai a questo giorno"
+    override val viewerActionPlayMotion = "Riproduci foto animata"
+    override val viewerActionPlay = "Riproduci"
+    override val viewerActionPause = "Pausa"
+    override val viewerActionSlideshow = "Avvia presentazione"
     override val metaLoading = "Caricamento dettagli…"
     override val metaUnavailable = "Dettagli non disponibili"
     override val metaDynamicRange = "Gamma dinamica"

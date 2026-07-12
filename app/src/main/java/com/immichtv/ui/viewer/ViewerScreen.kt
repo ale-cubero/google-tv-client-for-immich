@@ -44,6 +44,8 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.MotionPhotosOn
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Slideshow
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.runtime.Composable
@@ -101,6 +103,9 @@ private const val SEEK_STEP_MS = 10_000L
 private const val HINTS_MS = 6_000L
 private const val SCRUB_HIDE_MS = 3_000L
 private const val POSITION_CHIP_MS = 2_000L
+
+/** Actions offered by the OK menu, depending on the current asset. */
+private enum class ViewerAction { PLAY_MOTION, PLAY_PAUSE, SLIDESHOW }
 
 @Composable
 fun ViewerScreen(
@@ -197,6 +202,9 @@ private fun ViewerPager(
     var scrubDurationMs by remember { mutableLongStateOf(0L) }
     // Transient "n / total" chip on page change.
     var showPosition by remember { mutableStateOf(false) }
+    // OK opens a context action bar (the Streamer remote has no dedicated play/slideshow button).
+    var showActions by remember { mutableStateOf(false) }
+    var actionIndex by remember { mutableIntStateOf(0) }
     val panelScroll = rememberScrollState()
 
     fun advance() {
@@ -334,6 +342,15 @@ private fun ViewerPager(
     val str = com.immichtv.ui.i18n.LocalStrings.current
     val hdrLabel = if (current?.isVideo == true) VideoHdr.label(videoColorInfo, context, str) else null
 
+    // Context actions offered by the OK menu (left→right). Motion-photo and video are exclusive.
+    val actions = buildList {
+        if (current?.hasMotion == true) add(ViewerAction.PLAY_MOTION)
+        if (current?.isVideo == true) add(ViewerAction.PLAY_PAUSE)
+        add(ViewerAction.SLIDESHOW)
+    }
+    // Close the action bar whenever the visible asset changes.
+    LaunchedEffect(current?.id) { showActions = false }
+
     // Hints fade out on their own; any key press dismisses them early (handled in the key listener).
     LaunchedEffect(Unit) {
         delay(HINTS_MS)
@@ -375,8 +392,8 @@ private fun ViewerPager(
         showPosition = false
     }
 
-    // Back closes the metadata panel before it exits the viewer.
-    BackHandler(enabled = showInfo) { showInfo = false }
+    // Back closes the action bar / metadata panel before it exits the viewer.
+    BackHandler(enabled = showInfo || showActions) { showInfo = false; showActions = false }
 
     Box(
         modifier = Modifier
@@ -389,49 +406,77 @@ private fun ViewerPager(
                 when (event.type) {
                     KeyEventType.KeyDown -> when (event.key) {
                         Key.MediaPlayPause, Key.MediaPlay -> {
+                            // Kept for remotes that have a transport key; the Streamer remote doesn't.
                             slideshow = !slideshow
-                            if (slideshow) showInfo = false
+                            if (slideshow) { showInfo = false; showActions = false }
                             true
                         }
                         Key.DirectionRight -> {
-                            slideshow = false
-                            handleHorizontal(+1, event.nativeKeyEvent.repeatCount, onVideo, player,
-                                onSeek = { scrubKick++ }) { pendingTap = it }
+                            // Action bar open: move the selection instead of changing asset.
+                            if (showActions) {
+                                actionIndex = (actionIndex + 1).coerceIn(0, actions.lastIndex)
+                                true
+                            } else {
+                                slideshow = false
+                                handleHorizontal(+1, event.nativeKeyEvent.repeatCount, onVideo, player,
+                                    onSeek = { scrubKick++ }) { pendingTap = it }
+                            }
                         }
                         Key.DirectionLeft -> {
-                            slideshow = false
-                            handleHorizontal(-1, event.nativeKeyEvent.repeatCount, onVideo, player,
-                                onSeek = { scrubKick++ }) { pendingTap = it }
+                            if (showActions) {
+                                actionIndex = (actionIndex - 1).coerceIn(0, actions.lastIndex)
+                                true
+                            } else {
+                                slideshow = false
+                                handleHorizontal(-1, event.nativeKeyEvent.repeatCount, onVideo, player,
+                                    onSeek = { scrubKick++ }) { pendingTap = it }
+                            }
                         }
                         Key.DirectionCenter, Key.Enter -> {
-                            slideshow = false
                             val cur = current
                             when {
-                                // Detail panel open on a dated asset: OK jumps to that asset's day in
-                                // the timeline (the "Go to this day" button shown in the panel).
-                                showInfo && cur != null && cur.dateTime.isNotBlank() ->
+                                // Detail panel open: OK jumps to this asset's day (if dated), else closes it.
+                                showInfo -> if (cur != null && cur.dateTime.isNotBlank()) {
                                     onOpenTimelineAt(cur.dateTime.take(7), cur.id)
-                                // Otherwise OK: play/pause a video, play a motion photo's clip on
-                                // demand, or toggle the detail panel on a plain photo. (Details = Down.)
-                                onVideo -> if (player.isPlaying) player.pause() else player.play()
-                                cur?.hasMotion == true -> { showInfo = false; playMotion() }
-                                else -> showInfo = !showInfo
+                                } else {
+                                    showInfo = false
+                                }
+                                // Slideshow running: OK stops it.
+                                slideshow -> slideshow = false
+                                // Action bar open: OK runs the highlighted action.
+                                showActions -> {
+                                    when (actions.getOrNull(actionIndex.coerceIn(0, actions.lastIndex))) {
+                                        ViewerAction.PLAY_MOTION -> { showActions = false; playMotion() }
+                                        ViewerAction.PLAY_PAUSE -> {
+                                            showActions = false
+                                            if (player.isPlaying) player.pause() else player.play()
+                                        }
+                                        ViewerAction.SLIDESHOW -> { showActions = false; slideshow = true }
+                                        null -> showActions = false
+                                    }
+                                }
+                                // Otherwise OK opens the action bar.
+                                else -> { showActions = true; actionIndex = 0; showHints = false }
                             }
                             true
                         }
                         Key.DirectionDown -> {
                             slideshow = false
-                            // Panel open: scroll it. Closed: open it.
-                            if (showInfo) scope.launch { panelScroll.animateScrollBy(220f) }
-                            else showInfo = true
+                            when {
+                                showActions -> showActions = false
+                                // Panel open: scroll it. Closed: open it.
+                                showInfo -> scope.launch { panelScroll.animateScrollBy(220f) }
+                                else -> showInfo = true
+                            }
                             true
                         }
                         Key.DirectionUp -> {
-                            // Panel open & scrolled: scroll back. At top: close it.
-                            if (showInfo && panelScroll.value > 0) {
-                                scope.launch { panelScroll.animateScrollBy(-220f) }
-                            } else {
-                                showInfo = false
+                            when {
+                                showActions -> showActions = false
+                                // Panel open & scrolled: scroll back. At top: close it.
+                                showInfo && panelScroll.value > 0 ->
+                                    scope.launch { panelScroll.animateScrollBy(-220f) }
+                                else -> showInfo = false
                             }
                             true
                         }
@@ -480,7 +525,7 @@ private fun ViewerPager(
                 // Fully qualified: the enclosing Row's RowScope.AnimatedVisibility would otherwise
                 // shadow the top-level overload inside this Box.
                 androidx.compose.animation.AnimatedVisibility(
-                    visible = showScrub && !videoError,
+                    visible = showScrub && !videoError && !showActions,
                     enter = fadeIn(),
                     exit = fadeOut(),
                     modifier = Modifier.align(Alignment.BottomCenter),
@@ -528,7 +573,7 @@ private fun ViewerPager(
         }
 
         AnimatedVisibility(
-            visible = showPosition && !showInfo,
+            visible = showPosition && !showInfo && !showActions,
             enter = fadeIn(),
             exit = fadeOut(),
             modifier = Modifier.align(Alignment.TopCenter),
@@ -543,7 +588,7 @@ private fun ViewerPager(
         }
 
         AnimatedVisibility(
-            visible = showHints,
+            visible = showHints && !showActions,
             enter = fadeIn(),
             exit = fadeOut(),
             modifier = Modifier.align(Alignment.BottomCenter),
@@ -555,6 +600,20 @@ private fun ViewerPager(
                     style = MaterialTheme.typography.labelLarge,
                 )
             }
+        }
+
+        AnimatedVisibility(
+            visible = showActions,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier.align(Alignment.BottomCenter),
+        ) {
+            ActionBar(
+                actions = actions,
+                selected = actionIndex.coerceIn(0, actions.lastIndex),
+                isPlaying = isPlaying,
+                modifier = Modifier.padding(bottom = 48.dp),
+            )
         }
 
         if (videoError && current?.isVideo == true) {
@@ -578,6 +637,64 @@ private fun ViewerPager(
     }
 
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+}
+
+/**
+ * Bottom action bar opened with OK. Not focusable — the viewer owns D-pad focus — so selection is
+ * driven by the key handler (Left/Right move [selected], OK runs it) and shown by highlighting.
+ */
+@Composable
+private fun ActionBar(
+    actions: List<ViewerAction>,
+    selected: Int,
+    isPlaying: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val str = com.immichtv.ui.i18n.LocalStrings.current
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .background(AppColors.chip, RoundedCornerShape(16.dp))
+            .padding(8.dp),
+    ) {
+        actions.forEachIndexed { i, action ->
+            val icon = when (action) {
+                ViewerAction.PLAY_MOTION -> Icons.Filled.MotionPhotosOn
+                ViewerAction.PLAY_PAUSE -> if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow
+                ViewerAction.SLIDESHOW -> Icons.Filled.Slideshow
+            }
+            val label = when (action) {
+                ViewerAction.PLAY_MOTION -> str.viewerActionPlayMotion
+                ViewerAction.PLAY_PAUSE -> if (isPlaying) str.viewerActionPause else str.viewerActionPlay
+                ViewerAction.SLIDESHOW -> str.viewerActionSlideshow
+            }
+            val on = i == selected
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .background(
+                        if (on) MaterialTheme.colorScheme.primary else Color.Transparent,
+                        RoundedCornerShape(10.dp),
+                    )
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+            ) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = if (on) MaterialTheme.colorScheme.onPrimary else Color.White,
+                    modifier = Modifier.size(20.dp),
+                )
+                Text(
+                    text = label,
+                    color = if (on) MaterialTheme.colorScheme.onPrimary else Color.White,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
+                )
+            }
+        }
+    }
 }
 
 /** Small rounded translucent chip used for viewer overlays (badges, hints, position). */
