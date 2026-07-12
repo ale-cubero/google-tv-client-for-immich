@@ -70,6 +70,7 @@ class CollectionViewModel @Inject constructor(
                         content.name to content.assets
                     }
                     "person" -> titleArg to repository.getPersonAssets(id)
+                    "place" -> titleArg to repository.getPlaceAssets(id)
                     else -> error("Unknown collection source: $source")
                 }
             }.fold(

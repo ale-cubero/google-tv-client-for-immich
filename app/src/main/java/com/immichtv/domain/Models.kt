@@ -49,6 +49,12 @@ data class Person(
     val thumbnailUrl: String,
 )
 
+/** A geographic place (city) for the Places rail, with a representative thumbnail. */
+data class Place(
+    val city: String,
+    val thumbnailUrl: String,
+)
+
 /** An "on this day" memory: a titled set of assets. */
 data class Memory(
     val id: String,

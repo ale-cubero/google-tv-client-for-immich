@@ -66,4 +66,8 @@ interface ImmichApi {
     // Smart/CLIP search — semantic context + object recognition. Non-mutating read (allowlisted).
     @POST("api/search/smart")
     suspend fun searchSmart(@Body body: SmartSearchRequest): SearchResponseDto
+
+    // Grouped explore data (Places = the exifInfo.city group).
+    @GET("api/search/explore")
+    suspend fun getExplore(): List<ExploreGroupDto>
 }

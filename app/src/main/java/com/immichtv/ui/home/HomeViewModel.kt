@@ -30,6 +30,7 @@ import com.immichtv.domain.Album
 import com.immichtv.domain.Asset
 import com.immichtv.domain.Memory
 import com.immichtv.domain.Person
+import com.immichtv.domain.Place
 import com.immichtv.domain.SlideshowPrefs
 import com.immichtv.ui.common.toUserMessage
 import com.immichtv.ui.theme.ThemeMode
@@ -55,6 +56,7 @@ data class HomeData(
     val recent: List<Asset> = emptyList(),
     val albums: List<Album> = emptyList(),
     val people: List<Person> = emptyList(),
+    val places: List<Place> = emptyList(),
     val videos: List<Asset> = emptyList(),
 )
 
@@ -125,14 +127,16 @@ class HomeViewModel @Inject constructor(
             val recent = async { runCatching { repository.getRecentAssets() } }
             val albums = async { runCatching { repository.getAlbums() } }
             val people = async { runCatching { repository.getPeople() } }
+            val places = async { runCatching { repository.getPlaces() } }
             val videos = async { runCatching { repository.getVideos() } }
 
             val memoriesR = memories.await()
             val recentR = recent.await()
             val albumsR = albums.await()
             val peopleR = people.await()
+            val placesR = places.await()
             val videosR = videos.await()
-            val results = listOf(memoriesR, recentR, albumsR, peopleR, videosR)
+            val results = listOf(memoriesR, recentR, albumsR, peopleR, placesR, videosR)
 
             // Every rail failing means the server is unreachable (offline / network) or the key is
             // bad — show an actionable error with Retry. A partial failure just leaves that rail empty;
@@ -148,6 +152,7 @@ class HomeViewModel @Inject constructor(
                         recent = recentR.getOrDefault(emptyList()),
                         albums = albumsR.getOrDefault(emptyList()),
                         people = peopleR.getOrDefault(emptyList()),
+                        places = placesR.getOrDefault(emptyList()),
                         videos = videosR.getOrDefault(emptyList()),
                     ),
                 )

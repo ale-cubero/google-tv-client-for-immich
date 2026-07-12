@@ -31,6 +31,7 @@ import com.immichtv.domain.AssetDetail
 import com.immichtv.domain.BucketMeta
 import com.immichtv.domain.Memory
 import com.immichtv.domain.Person
+import com.immichtv.domain.Place
 import com.immichtv.ui.i18n.stringsFor
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import java.time.OffsetDateTime
@@ -109,6 +110,21 @@ class ImmichRepository @Inject constructor(
     suspend fun searchSmart(query: String, limit: Int = 100): List<Asset> =
         api.searchSmart(SmartSearchRequest(query = query.trim(), size = limit))
             .assets.items.map { it.toDomain() }
+
+    /** Geographic places (cities) for the Places rail — the `exifInfo.city` explore group. */
+    suspend fun getPlaces(): List<Place> =
+        api.getExplore()
+            .firstOrNull { it.fieldName == "exifInfo.city" }
+            ?.items
+            ?.filter { it.value.isNotBlank() }
+            ?.map { Place(city = it.value, thumbnailUrl = thumbnailUrl(it.data.id)) }
+            .orEmpty()
+
+    /** All normally-visible assets taken in one city. */
+    suspend fun getPlaceAssets(city: String): List<Asset> =
+        api.searchMetadata(
+            SearchMetadataRequest(city = city, visibility = "timeline", size = 1000),
+        ).assets.items.map { it.toDomain() }
 
     /** Full EXIF + people detail for the viewer's metadata panel. */
     suspend fun getAssetDetail(assetId: String): AssetDetail {

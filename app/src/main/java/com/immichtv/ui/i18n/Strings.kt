@@ -33,6 +33,7 @@ interface Strings {
     val railRecent: String
     val railAlbums: String
     val railPeople: String
+    val railPlaces: String
     val railVideos: String
     val homeLoading: String
     val homeEmptyTitle: String
@@ -150,6 +151,7 @@ object En : Strings {
     override val railRecent = "Recent"
     override val railAlbums = "Albums"
     override val railPeople = "People"
+    override val railPlaces = "Places"
     override val railVideos = "Videos"
     override val homeLoading = "Loading your library…"
     override val homeEmptyTitle = "Your library is empty"
@@ -269,6 +271,7 @@ object Es : Strings {
     override val railRecent = "Recientes"
     override val railAlbums = "Álbumes"
     override val railPeople = "Personas"
+    override val railPlaces = "Lugares"
     override val railVideos = "Videos"
     override val homeLoading = "Cargando tu biblioteca…"
     override val homeEmptyTitle = "Tu biblioteca está vacía"
@@ -389,6 +392,7 @@ object Pt : Strings {
     override val railRecent = "Recentes"
     override val railAlbums = "Álbuns"
     override val railPeople = "Pessoas"
+    override val railPlaces = "Lugares"
     override val railVideos = "Vídeos"
     override val homeLoading = "Carregando sua biblioteca…"
     override val homeEmptyTitle = "Sua biblioteca está vazia"
@@ -509,6 +513,7 @@ object It : Strings {
     override val railRecent = "Recenti"
     override val railAlbums = "Album"
     override val railPeople = "Persone"
+    override val railPlaces = "Luoghi"
     override val railVideos = "Video"
     override val homeLoading = "Caricamento della libreria…"
     override val homeEmptyTitle = "La tua libreria è vuota"

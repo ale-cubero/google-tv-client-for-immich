@@ -47,6 +47,7 @@ import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
@@ -100,6 +101,7 @@ import com.immichtv.domain.Album
 import com.immichtv.domain.Asset
 import com.immichtv.domain.Memory
 import com.immichtv.domain.Person
+import com.immichtv.domain.Place
 import com.immichtv.domain.SlideshowPrefs
 
 private const val REPO_URL = "https://github.com/ale-cubero/google-tv-client-for-immich"
@@ -111,6 +113,7 @@ fun HomeScreen(
     onOpenViewer: () -> Unit,
     onOpenAlbum: (id: String, title: String) -> Unit,
     onOpenPerson: (id: String, name: String) -> Unit,
+    onOpenPlace: (city: String) -> Unit,
     onChangeServer: () -> Unit,
     onLoggedOut: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
@@ -151,6 +154,7 @@ fun HomeScreen(
                 onOpenViewer = onOpenViewer,
                 onOpenAlbum = onOpenAlbum,
                 onOpenPerson = onOpenPerson,
+                onOpenPlace = onOpenPlace,
                 onOpenSettings = { showMenu = true },
             )
         }
@@ -201,6 +205,7 @@ private fun HomeContent(
     onOpenViewer: () -> Unit,
     onOpenAlbum: (String, String) -> Unit,
     onOpenPerson: (String, String) -> Unit,
+    onOpenPlace: (String) -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     val isEmpty = data == HomeData()
@@ -279,6 +284,14 @@ private fun HomeContent(
             Rail(str.railPeople) {
                 itemsIndexed(data.people) { _, person ->
                     PersonTile(person) { onOpenPerson(person.id, person.name) }
+                }
+            }
+        }
+
+        if (data.places.isNotEmpty()) item {
+            Rail(str.railPlaces) {
+                itemsIndexed(data.places) { _, place ->
+                    PlaceTile(place) { onOpenPlace(place.city) }
                 }
             }
         }
@@ -891,6 +904,54 @@ private fun PersonTile(person: Person, onClick: () -> Unit) {
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
             )
+        }
+    }
+}
+
+@Composable
+private fun PlaceTile(place: Place, onClick: () -> Unit) {
+    // A labeled location banner (like memories): city name over the representative photo. The label
+    // is inside the card, so it scales with the image and is never covered.
+    Card(
+        onClick = onClick,
+        border = CardFocus.border(),
+        scale = CardFocus.scale(),
+        modifier = Modifier.width(240.dp).height(150.dp),
+    ) {
+        Box(modifier = Modifier.fillMaxSize().background(AppColors.placeholder)) {
+            AsyncImage(
+                model = place.thumbnailUrl,
+                contentDescription = place.city,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(72.dp)
+                    .align(Alignment.BottomCenter)
+                    .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xCC000000)))),
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.align(Alignment.BottomStart).padding(14.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.LocationOn,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = place.city,
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }

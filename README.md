@@ -6,7 +6,7 @@ A native **Android TV / Google TV** client for a self-hosted [Immich](https://im
 
 ## Features
 
-- 🖼️ **Browse your whole library** — a Home screen of memories and rails, a fast month‑by‑month timeline, and album & people views.
+- 🖼️ **Browse your whole library** — a Home screen of memories and rails, a fast month‑by‑month timeline, and album, people & places views.
 - 🔍 **Smart search** — find photos by what's in them, using Immich's semantic (CLIP) search and object recognition — search "beach", "birthday cake", or "dog", not filenames.
 - ⚡ **Smooth on huge libraries** — buttery scrolling of tens of thousands of photos, with a year scrubber to jump across the years instantly.
 - ▶️ **Photo & video viewer** — full‑screen playback with hardware decoding, **HDR** support, and Motion Photos (Samsung/Apple/Google live photos).
@@ -44,7 +44,7 @@ The app ships with **dark and light themes**, styled after Immich's own colors.
 - **Home** — an "On this day" memories row plus Recent, Albums, People, and Videos rails, and a Settings menu (change server, refresh, slideshow settings, logout, about).
 - **Timeline** — the whole library in one smooth grid, driven by Immich's month "buckets": all month boundaries are known up front, each month's assets load lazily as you scroll, with prefetch and an LRU that evicts far‑off months. A year scrubber on the right edge jumps across a multi‑year library instantly (and always shows the year you're in).
 - **Search** — a search bar at the top of Home runs Immich's smart (CLIP) search: results match by meaning and recognized objects/scenes, not filenames. Pick any result to open it in the viewer.
-- **Albums & People** — browse an album or a person's photos in the same grid.
+- **Albums, People & Places** — browse an album, a person, or a geographic place (city) in the same grid. Places uses Immich's location data ("Explore").
 - **Viewer** — full‑screen pager for photos and videos:
   - Photos load a cached thumbnail instantly, then the high‑res preview.
   - Videos play via Media3/ExoPlayer (server decides direct‑play vs transcode), with a transient scrub bar, buffering indicator, and duration badges on tiles. HDR (HLG/PQ) plays with true passthrough, and the metadata panel reports the dynamic range.

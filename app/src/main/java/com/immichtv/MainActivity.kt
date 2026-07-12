@@ -63,8 +63,9 @@ private object Routes {
     const val SEARCH = "search"
     const val VIEWER = "viewer"
     const val COLLECTION = "collection/{source}/{id}?title={title}"
+    // id is encoded too: album/person ids are UUIDs, but a place id is a city name (may have spaces).
     fun collection(source: String, id: String, title: String) =
-        "collection/$source/$id?title=${Uri.encode(title)}"
+        "collection/${Uri.encode(source)}/${Uri.encode(id)}?title=${Uri.encode(title)}"
 }
 
 @AndroidEntryPoint
@@ -131,6 +132,7 @@ private fun AppContent(appViewModel: AppViewModel) {
                 onOpenViewer = { navController.navigate(Routes.VIEWER) },
                 onOpenAlbum = { id, title -> navController.navigate(Routes.collection("album", id, title)) },
                 onOpenPerson = { id, name -> navController.navigate(Routes.collection("person", id, name)) },
+                onOpenPlace = { city -> navController.navigate(Routes.collection("place", city, city)) },
                 // Reopen setup with current values prefilled (Back cancels, returning Home).
                 onChangeServer = { navController.navigate(Routes.SETUP) },
                 // After logout the settings are already cleared; drop Home from the stack.

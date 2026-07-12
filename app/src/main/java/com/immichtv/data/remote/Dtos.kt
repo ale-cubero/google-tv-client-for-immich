@@ -74,11 +74,28 @@ data class PersonDto(
 data class SearchMetadataRequest(
     val type: String? = null,
     val personIds: List<String>? = null,
+    val city: String? = null, // filter by geographic place (Immich "Places")
     // "timeline" = only normally-visible assets; excludes hidden Motion Photo video clips
     // (Samsung/Apple/Google live photos), which have no thumbnails of their own.
     val visibility: String? = null,
     val size: Int = 100,
     val page: Int = 1,
+)
+
+/**
+ * `GET /api/search/explore` — grouped "explore" data. We use the `exifInfo.city` group for the
+ * Places rail: each item is a city name plus a representative asset (for its thumbnail).
+ */
+@Serializable
+data class ExploreGroupDto(
+    val fieldName: String = "",
+    val items: List<ExploreItemDto> = emptyList(),
+)
+
+@Serializable
+data class ExploreItemDto(
+    val value: String = "",
+    val data: AssetDto,
 )
 
 /**
