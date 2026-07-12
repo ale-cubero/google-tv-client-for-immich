@@ -184,8 +184,6 @@ data class TimeBucketDto(
 data class TimeBucketAssetsDto(
     val id: List<String> = emptyList(),
     val isImage: List<Boolean> = emptyList(),
-    val ratio: List<Double> = emptyList(),
-    val thumbhash: List<String?> = emptyList(),
     val livePhotoVideoId: List<String?> = emptyList(),
     val duration: List<JsonPrimitive?> = emptyList(), // per-asset video duration (see AssetDto.duration)
 )
