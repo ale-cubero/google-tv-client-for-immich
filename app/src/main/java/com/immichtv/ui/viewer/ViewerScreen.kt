@@ -28,14 +28,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -102,11 +100,12 @@ import kotlinx.coroutines.launch
 
 private const val SEEK_STEP_MS = 10_000L
 private const val HINTS_MS = 6_000L
+private const val HINTS_REPEAT_MS = 3_000L // Up/Down re-shows the hints for this long
 private const val SCRUB_HIDE_MS = 3_000L
 private const val POSITION_CHIP_MS = 2_000L
 
 /** Actions offered by the OK menu, depending on the current asset. */
-private enum class ViewerAction { PLAY_MOTION, PLAY_PAUSE, DETAILS, SLIDESHOW }
+private enum class ViewerAction { GO_TO_DAY, PLAY_MOTION, PLAY_PAUSE, DETAILS, SLIDESHOW }
 
 @Composable
 fun ViewerScreen(
@@ -194,8 +193,11 @@ private fun ViewerPager(
     var videoError by remember { mutableStateOf(false) }
     // Per-direction tap vs hold tracking (hold = seek on video, tap = prev/next asset).
     var pendingTap by remember { mutableIntStateOf(0) } // -1 left, +1 right, 0 none
-    // Control hints shown briefly when the viewer opens; any key dismisses early.
+    // Control hints: shown on open, re-shown on Up/Down, and dismissed early by any other key.
+    // Bumping [hintsKick] restarts the auto-hide timer; [hintsDurationMs] is how long it stays up.
     var showHints by remember { mutableStateOf(true) }
+    var hintsKick by remember { mutableIntStateOf(0) }
+    var hintsDurationMs by remember { mutableLongStateOf(HINTS_MS) }
     // Transient scrub bar state (videos): visible while paused, or briefly after a seek.
     var scrubKick by remember { mutableIntStateOf(0) }
     var showScrub by remember { mutableStateOf(false) }
@@ -343,8 +345,12 @@ private fun ViewerPager(
     val str = com.immichtv.ui.i18n.LocalStrings.current
     val hdrLabel = if (current?.isVideo == true) VideoHdr.label(videoColorInfo, context, str) else null
 
+    // "Go to this day" is offered only for a photo opened from the memories rail.
+    val canGoToDay = viewModel.fromMemories &&
+        current?.isVideo == false && current.dateTime.isNotBlank()
     // Context actions offered by the OK menu (left→right). Motion-photo and video are exclusive.
     val actions = buildList {
+        if (canGoToDay) add(ViewerAction.GO_TO_DAY)
         if (current?.hasMotion == true) add(ViewerAction.PLAY_MOTION)
         if (current?.isVideo == true) add(ViewerAction.PLAY_PAUSE)
         add(ViewerAction.DETAILS)
@@ -354,8 +360,10 @@ private fun ViewerPager(
     LaunchedEffect(current?.id) { showActions = false }
 
     // Hints fade out on their own; any key press dismisses them early (handled in the key listener).
-    LaunchedEffect(Unit) {
-        delay(HINTS_MS)
+    // Re-runs whenever Up/Down bumps hintsKick, restarting the timer.
+    LaunchedEffect(hintsKick) {
+        showHints = true
+        delay(hintsDurationMs)
         showHints = false
     }
 
@@ -404,7 +412,12 @@ private fun ViewerPager(
             .focusable()
             .onPreviewKeyEvent { event ->
                 val onVideo = current?.isVideo == true
-                if (event.type == KeyEventType.KeyDown) showHints = false
+                // Any key dismisses the hints early — except Up/Down, which re-show them (below).
+                if (event.type == KeyEventType.KeyDown &&
+                    event.key != Key.DirectionUp && event.key != Key.DirectionDown
+                ) {
+                    showHints = false
+                }
                 when (event.type) {
                     KeyEventType.KeyDown -> when (event.key) {
                         Key.MediaPlayPause, Key.MediaPlay -> {
@@ -437,17 +450,17 @@ private fun ViewerPager(
                         Key.DirectionCenter, Key.Enter -> {
                             val cur = current
                             when {
-                                // Detail panel open: OK jumps to this asset's day (if dated), else closes it.
-                                showInfo -> if (cur != null && cur.dateTime.isNotBlank()) {
-                                    onOpenTimelineAt(cur.dateTime.take(7), cur.id)
-                                } else {
-                                    showInfo = false
-                                }
+                                // Detail panel open: OK closes it.
+                                showInfo -> showInfo = false
                                 // Slideshow running: OK stops it.
                                 slideshow -> slideshow = false
                                 // Action bar open: OK runs the highlighted action.
                                 showActions -> {
                                     when (actions.getOrNull(actionIndex.coerceIn(0, actions.lastIndex))) {
+                                        ViewerAction.GO_TO_DAY -> {
+                                            showActions = false
+                                            cur?.let { onOpenTimelineAt(it.dateTime.take(7), it.id) }
+                                        }
                                         ViewerAction.PLAY_MOTION -> { showActions = false; playMotion() }
                                         ViewerAction.PLAY_PAUSE -> {
                                             showActions = false
@@ -469,6 +482,8 @@ private fun ViewerPager(
                                 showActions -> showActions = false
                                 // Panel open: scroll it. (Details is opened from the OK action bar.)
                                 showInfo -> scope.launch { panelScroll.animateScrollBy(220f) }
+                                // Base state: (re)show the control hints for a few seconds.
+                                else -> { hintsDurationMs = HINTS_REPEAT_MS; hintsKick++ }
                             }
                             true
                         }
@@ -478,7 +493,9 @@ private fun ViewerPager(
                                 // Panel open & scrolled: scroll back. At top: close it.
                                 showInfo && panelScroll.value > 0 ->
                                     scope.launch { panelScroll.animateScrollBy(-220f) }
-                                else -> showInfo = false
+                                showInfo -> showInfo = false
+                                // Base state: (re)show the control hints for a few seconds.
+                                else -> { hintsDurationMs = HINTS_REPEAT_MS; hintsKick++ }
                             }
                             true
                         }
@@ -549,7 +566,6 @@ private fun ViewerPager(
                     total = assets.size,
                     isPlaying = isPlaying,
                     hdr = hdrLabel,
-                    canGoToDay = current?.dateTime?.isNotBlank() == true,
                     scroll = panelScroll,
                     modifier = Modifier.weight(0.36f).fillMaxHeight(),
                 )
@@ -662,12 +678,14 @@ private fun ActionBar(
     ) {
         actions.forEachIndexed { i, action ->
             val icon = when (action) {
+                ViewerAction.GO_TO_DAY -> Icons.Filled.CalendarMonth
                 ViewerAction.PLAY_MOTION -> Icons.Filled.MotionPhotosOn
                 ViewerAction.PLAY_PAUSE -> if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow
                 ViewerAction.DETAILS -> Icons.Filled.Info
                 ViewerAction.SLIDESHOW -> Icons.Filled.Slideshow
             }
             val label = when (action) {
+                ViewerAction.GO_TO_DAY -> str.viewerGoToDay
                 ViewerAction.PLAY_MOTION -> str.viewerActionPlayMotion
                 ViewerAction.PLAY_PAUSE -> if (isPlaying) str.viewerActionPause else str.viewerActionPlay
                 ViewerAction.DETAILS -> str.viewerActionDetails
@@ -851,7 +869,6 @@ private fun MetadataSidePanel(
     total: Int,
     isPlaying: Boolean,
     hdr: String?,
-    canGoToDay: Boolean,
     scroll: androidx.compose.foundation.ScrollState,
     modifier: Modifier = Modifier,
 ) {
@@ -865,11 +882,6 @@ private fun MetadataSidePanel(
             .padding(horizontal = 36.dp, vertical = 54.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        // Activated by OK while the panel is open (see the viewer's key handler). Not separately
-        // focusable — the viewer owns D-pad focus — so it's styled as a button with an OK affordance.
-        if (canGoToDay) {
-            GoToDayButton(str.viewerGoToDay)
-        }
         Text(
             text = loaded?.fileName?.takeIf { it.isNotBlank() } ?: kind,
             color = Color.White,
@@ -898,46 +910,6 @@ private fun MetadataSidePanel(
                 LabeledRow(str.metaPeople, detail.detail.people.joinToString(", "))
             }
         }
-    }
-}
-
-/**
- * "Go to this day" call-to-action at the top of the metadata panel. It isn't independently
- * focusable (the viewer owns D-pad focus for paging), so it's presented as a filled button with an
- * OK badge; pressing OK while the panel is open triggers the jump (handled in the viewer key logic).
- */
-@Composable
-private fun GoToDayButton(label: String) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp))
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-    ) {
-        Icon(
-            Icons.Filled.CalendarMonth,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onPrimary,
-            modifier = Modifier.size(20.dp),
-        )
-        Spacer(Modifier.width(10.dp))
-        Text(
-            text = label,
-            color = MaterialTheme.colorScheme.onPrimary,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.weight(1f),
-        )
-        Text(
-            text = "OK",
-            color = MaterialTheme.colorScheme.onPrimary,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier
-                .background(Color(0x33FFFFFF), RoundedCornerShape(6.dp))
-                .padding(horizontal = 8.dp, vertical = 3.dp),
-        )
     }
 }
 

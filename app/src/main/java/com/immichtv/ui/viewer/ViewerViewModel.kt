@@ -74,6 +74,9 @@ class ViewerViewModel @Inject constructor(
     private val _assets = MutableStateFlow(queue.assets)
     val assets: StateFlow<List<Asset>> = _assets.asStateFlow()
 
+    /** Opened from the memories rail — gates the "Go to this day" viewer action. */
+    val fromMemories: Boolean = queue.fromMemories
+
     /** Number of items just prepended; the pager must jump forward by this amount. */
     private val _prepended = MutableSharedFlow<Int>(extraBufferCapacity = 4)
     val prepended: SharedFlow<Int> = _prepended.asSharedFlow()

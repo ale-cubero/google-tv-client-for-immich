@@ -199,7 +199,7 @@ fun HomeScreen(
 @Composable
 private fun HomeContent(
     data: HomeData,
-    openAssets: (List<Asset>, Int) -> Unit,
+    openAssets: (List<Asset>, Int, Boolean) -> Unit,
     onOpenTimeline: () -> Unit,
     onOpenSearch: () -> Unit,
     onOpenViewer: () -> Unit,
@@ -254,7 +254,7 @@ private fun HomeContent(
             Rail(str.railOnThisDay) {
                 itemsIndexed(data.memories) { _, memory ->
                     MemoryTile(memory) {
-                        openAssets(memory.assets, 0)
+                        openAssets(memory.assets, 0, true)
                         onOpenViewer()
                     }
                 }
@@ -265,7 +265,7 @@ private fun HomeContent(
             Rail(str.railRecent) {
                 itemsIndexed(data.recent) { index, asset ->
                     AssetTile(asset) {
-                        openAssets(data.recent, index)
+                        openAssets(data.recent, index, false)
                         onOpenViewer()
                     }
                 }
@@ -300,7 +300,7 @@ private fun HomeContent(
             Rail(str.railVideos) {
                 itemsIndexed(data.videos) { index, asset ->
                     AssetTile(asset) {
-                        openAssets(data.videos, index)
+                        openAssets(data.videos, index, false)
                         onOpenViewer()
                     }
                 }

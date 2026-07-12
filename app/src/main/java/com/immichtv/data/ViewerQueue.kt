@@ -47,10 +47,19 @@ class ViewerQueue @Inject constructor() {
         private set
     var timeline: TimelineNav? = null
         private set
+    // Opened from the "On this day" memories rail — enables the viewer's "Go to this day" action.
+    var fromMemories: Boolean = false
+        private set
 
-    fun set(assets: List<Asset>, startIndex: Int, timeline: TimelineNav? = null) {
+    fun set(
+        assets: List<Asset>,
+        startIndex: Int,
+        timeline: TimelineNav? = null,
+        fromMemories: Boolean = false,
+    ) {
         this.assets = assets
         this.startIndex = startIndex.coerceIn(0, (assets.size - 1).coerceAtLeast(0))
         this.timeline = timeline
+        this.fromMemories = fromMemories
     }
 }

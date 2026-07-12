@@ -161,7 +161,8 @@ class HomeViewModel @Inject constructor(
     }
 
     /** Stage an asset list for the viewer before navigating to it. */
-    fun openAssets(assets: List<Asset>, index: Int) = viewerQueue.set(assets, index)
+    fun openAssets(assets: List<Asset>, index: Int, fromMemories: Boolean = false) =
+        viewerQueue.set(assets, index, fromMemories = fromMemories)
 
     /**
      * Clear stored server URL + API key AND all cached media (Coil memory + disk cache), so
