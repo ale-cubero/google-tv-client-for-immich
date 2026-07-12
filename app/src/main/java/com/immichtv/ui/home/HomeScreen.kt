@@ -44,6 +44,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Refresh
@@ -90,6 +91,8 @@ import com.immichtv.ui.common.ErrorState
 import com.immichtv.ui.common.LoadingState
 import com.immichtv.ui.common.QrCode
 import com.immichtv.ui.common.brandButtonColors
+import com.immichtv.ui.i18n.Language
+import com.immichtv.ui.i18n.LocalStrings
 import com.immichtv.ui.theme.AppColors
 import com.immichtv.ui.theme.ThemeMode
 import com.immichtv.domain.Album
@@ -114,10 +117,12 @@ fun HomeScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val slideshowPrefs by viewModel.slideshowPrefs.collectAsStateWithLifecycle()
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+    val language by viewModel.language.collectAsStateWithLifecycle()
     var showMenu by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
     var showSlideshowSettings by remember { mutableStateOf(false) }
     var showAppearance by remember { mutableStateOf(false) }
+    var showLanguage by remember { mutableStateOf(false) }
 
     // Home stays on the back stack for the whole session — refresh stale data when it resurfaces.
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -135,7 +140,7 @@ fun HomeScreen(
             .background(MaterialTheme.colorScheme.background),
     ) {
         when (val s = state) {
-            is HomeUiState.Loading -> LoadingState("Loading your library…")
+            is HomeUiState.Loading -> LoadingState(LocalStrings.current.homeLoading)
             is HomeUiState.Error -> ErrorState(s.message, onRetry = viewModel::load)
             is HomeUiState.Ready -> HomeContent(
                 data = s.data,
@@ -154,6 +159,7 @@ fun HomeScreen(
                 onChangeServer = { showMenu = false; onChangeServer() },
                 onRefresh = { showMenu = false; viewModel.load() },
                 onAppearance = { showMenu = false; showAppearance = true },
+                onLanguage = { showMenu = false; showLanguage = true },
                 onSlideshow = { showMenu = false; showSlideshowSettings = true },
                 onLogout = { showMenu = false; viewModel.logout(onLoggedOut) },
                 onAbout = { showMenu = false; showAbout = true },
@@ -165,6 +171,13 @@ fun HomeScreen(
                 mode = themeMode,
                 onSelect = viewModel::setThemeMode,
                 onDismiss = { showAppearance = false },
+            )
+        }
+        if (showLanguage) {
+            LanguageDialog(
+                current = language,
+                onSelect = viewModel::setLanguage,
+                onDismiss = { showLanguage = false },
             )
         }
         if (showSlideshowSettings) {
@@ -191,6 +204,7 @@ private fun HomeContent(
 ) {
     val isEmpty = data == HomeData()
     val timelineFocus = remember { FocusRequester() }
+    val str = LocalStrings.current
     LazyColumn(
         contentPadding = PaddingValues(top = 40.dp, bottom = 60.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -211,7 +225,7 @@ private fun HomeContent(
                 ) {
                     Icon(Icons.Filled.CalendarMonth, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Timeline")
+                    Text(str.timeline)
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 SearchBar(onClick = onOpenSearch, modifier = Modifier.width(420.dp))
@@ -223,15 +237,15 @@ private fun HomeContent(
         if (isEmpty) {
             item {
                 EmptyState(
-                    title = "Your library is empty",
-                    subtitle = "Photos and videos added in Immich will show up here.",
+                    title = str.homeEmptyTitle,
+                    subtitle = str.emptyLibrarySubtitle,
                     modifier = Modifier.fillMaxWidth().height(400.dp),
                 )
             }
         }
 
         if (data.memories.isNotEmpty()) item {
-            Rail("On this day") {
+            Rail(str.railOnThisDay) {
                 itemsIndexed(data.memories) { _, memory ->
                     MemoryTile(memory) {
                         openAssets(memory.assets, 0)
@@ -242,7 +256,7 @@ private fun HomeContent(
         }
 
         if (data.recent.isNotEmpty()) item {
-            Rail("Recent") {
+            Rail(str.railRecent) {
                 itemsIndexed(data.recent) { index, asset ->
                     AssetTile(asset) {
                         openAssets(data.recent, index)
@@ -253,7 +267,7 @@ private fun HomeContent(
         }
 
         if (data.albums.isNotEmpty()) item {
-            Rail("Albums") {
+            Rail(str.railAlbums) {
                 itemsIndexed(data.albums) { _, album ->
                     AlbumTile(album) { onOpenAlbum(album.id, album.name) }
                 }
@@ -261,7 +275,7 @@ private fun HomeContent(
         }
 
         if (data.people.isNotEmpty()) item {
-            Rail("People") {
+            Rail(str.railPeople) {
                 itemsIndexed(data.people) { _, person ->
                     PersonTile(person) { onOpenPerson(person.id, person.name) }
                 }
@@ -269,7 +283,7 @@ private fun HomeContent(
         }
 
         if (data.videos.isNotEmpty()) item {
-            Rail("Videos") {
+            Rail(str.railVideos) {
                 itemsIndexed(data.videos) { index, asset ->
                     AssetTile(asset) {
                         openAssets(data.videos, index)
@@ -301,12 +315,12 @@ private fun SearchBar(onClick: () -> Unit, modifier: Modifier = Modifier) {
     ) {
         Icon(
             imageVector = Icons.Filled.Search,
-            contentDescription = "Search",
+            contentDescription = null,
             tint = fg,
             modifier = Modifier.size(20.dp),
         )
         Text(
-            text = "Search your photos and videos",
+            text = LocalStrings.current.searchHint,
             color = fg,
             style = MaterialTheme.typography.bodyLarge,
         )
@@ -335,7 +349,7 @@ private fun SettingsButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
             modifier = Modifier.size(16.dp),
         )
         Text(
-            text = "Settings",
+            text = LocalStrings.current.settings,
             color = fg,
             style = MaterialTheme.typography.labelLarge,
         )
@@ -347,11 +361,13 @@ private fun SettingsMenu(
     onChangeServer: () -> Unit,
     onRefresh: () -> Unit,
     onAppearance: () -> Unit,
+    onLanguage: () -> Unit,
     onSlideshow: () -> Unit,
     onLogout: () -> Unit,
     onAbout: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val str = LocalStrings.current
     BackHandler(enabled = true, onBack = onDismiss)
     val firstItem = remember { FocusRequester() }
     Box(
@@ -370,12 +386,13 @@ private fun SettingsMenu(
                 .border(1.dp, AppColors.outline, RoundedCornerShape(14.dp))
                 .padding(10.dp),
         ) {
-            MenuItem("Change server", Icons.Filled.Dns, Modifier.focusRequester(firstItem), onChangeServer)
-            MenuItem("Refresh", Icons.Filled.Refresh, onClick = onRefresh)
-            MenuItem("Appearance", Icons.Filled.Palette, onClick = onAppearance)
-            MenuItem("Slideshow settings", Icons.Filled.Slideshow, onClick = onSlideshow)
-            MenuItem("Logout", Icons.AutoMirrored.Filled.Logout, onClick = onLogout)
-            MenuItem("About", Icons.Filled.Info, onClick = onAbout)
+            MenuItem(str.menuChangeServer, Icons.Filled.Dns, Modifier.focusRequester(firstItem), onChangeServer)
+            MenuItem(str.menuRefresh, Icons.Filled.Refresh, onClick = onRefresh)
+            MenuItem(str.menuAppearance, Icons.Filled.Palette, onClick = onAppearance)
+            MenuItem(str.menuLanguage, Icons.Filled.Language, onClick = onLanguage)
+            MenuItem(str.menuSlideshow, Icons.Filled.Slideshow, onClick = onSlideshow)
+            MenuItem(str.menuLogout, Icons.AutoMirrored.Filled.Logout, onClick = onLogout)
+            MenuItem(str.menuAbout, Icons.Filled.Info, onClick = onAbout)
         }
     }
     LaunchedEffect(Unit) { runCatching { firstItem.requestFocus() } }
@@ -424,6 +441,7 @@ private fun SlideshowSettingsDialog(
     onDismiss: () -> Unit,
 ) {
     BackHandler(enabled = true, onBack = onDismiss)
+    val str = LocalStrings.current
     val firstFocus = remember { FocusRequester() }
     Box(
         modifier = Modifier
@@ -441,13 +459,13 @@ private fun SlideshowSettingsDialog(
                 .padding(horizontal = 36.dp, vertical = 30.dp),
         ) {
             Text(
-                text = "Slideshow",
+                text = str.slideshowTitle,
                 color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                text = "Photo interval",
+                text = str.slideshowInterval,
                 color = AppColors.textSecondary,
                 style = MaterialTheme.typography.labelLarge,
             )
@@ -462,28 +480,28 @@ private fun SlideshowSettingsDialog(
                 }
             }
             Text(
-                text = "Order",
+                text = str.slideshowOrder,
                 color = AppColors.textSecondary,
                 style = MaterialTheme.typography.labelLarge,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 OptionChip(
-                    label = "In order",
+                    label = str.slideshowInOrder,
                     selected = !prefs.shuffle,
                     onClick = { onSave(prefs.copy(shuffle = false)) },
                 )
                 OptionChip(
-                    label = "Shuffle",
+                    label = str.slideshowShuffle,
                     selected = prefs.shuffle,
                     onClick = { onSave(prefs.copy(shuffle = true)) },
                 )
             }
             Text(
-                text = "Applies to the viewer slideshow (⏯) and the screensaver.",
+                text = str.slideshowNote,
                 color = AppColors.textTertiary,
                 style = MaterialTheme.typography.bodySmall,
             )
-            Button(onClick = onDismiss, colors = brandButtonColors()) { Text("Done") }
+            Button(onClick = onDismiss, colors = brandButtonColors()) { Text(str.actionDone) }
         }
     }
     LaunchedEffect(Unit) { runCatching { firstFocus.requestFocus() } }
@@ -496,6 +514,7 @@ private fun AppearanceDialog(
     onDismiss: () -> Unit,
 ) {
     BackHandler(enabled = true, onBack = onDismiss)
+    val str = LocalStrings.current
     val firstFocus = remember { FocusRequester() }
     Box(
         modifier = Modifier
@@ -513,32 +532,79 @@ private fun AppearanceDialog(
                 .padding(horizontal = 36.dp, vertical = 30.dp),
         ) {
             Text(
-                text = "Appearance",
+                text = str.appearanceTitle,
                 color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
-                text = "Theme",
+                text = str.themeLabel,
                 color = AppColors.textSecondary,
                 style = MaterialTheme.typography.labelLarge,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 IconOptionChip(
-                    label = "Dark",
+                    label = str.themeDark,
                     icon = Icons.Filled.DarkMode,
                     selected = mode == ThemeMode.DARK,
                     modifier = Modifier.focusRequester(firstFocus),
                     onClick = { onSelect(ThemeMode.DARK) },
                 )
                 IconOptionChip(
-                    label = "Light",
+                    label = str.themeLight,
                     icon = Icons.Filled.LightMode,
                     selected = mode == ThemeMode.LIGHT,
                     onClick = { onSelect(ThemeMode.LIGHT) },
                 )
             }
-            Button(onClick = onDismiss, colors = brandButtonColors()) { Text("Done") }
+            Button(onClick = onDismiss, colors = brandButtonColors()) { Text(str.actionDone) }
+        }
+    }
+    LaunchedEffect(Unit) { runCatching { firstFocus.requestFocus() } }
+}
+
+@Composable
+private fun LanguageDialog(
+    current: Language,
+    onSelect: (Language) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    BackHandler(enabled = true, onBack = onDismiss)
+    val str = LocalStrings.current
+    val firstFocus = remember { FocusRequester() }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(AppColors.scrim)
+            .clickable(onClick = onDismiss),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier
+                .widthIn(max = 520.dp)
+                .background(AppColors.panel, RoundedCornerShape(16.dp))
+                .border(1.dp, AppColors.outline, RoundedCornerShape(16.dp))
+                .padding(horizontal = 36.dp, vertical = 30.dp),
+        ) {
+            Text(
+                text = str.languageTitle,
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Language.entries.forEachIndexed { i, lang ->
+                    OptionChip(
+                        // Each language shown in its own name (English / Español).
+                        label = lang.displayName,
+                        selected = current == lang,
+                        modifier = if (i == 0) Modifier.focusRequester(firstFocus) else Modifier,
+                        onClick = { onSelect(lang) },
+                    )
+                }
+            }
+            Button(onClick = onDismiss, colors = brandButtonColors()) { Text(str.actionDone) }
         }
     }
     LaunchedEffect(Unit) { runCatching { firstFocus.requestFocus() } }
@@ -611,6 +677,7 @@ private fun OptionChip(
 @Composable
 private fun AboutDialog(onDismiss: () -> Unit) {
     BackHandler(enabled = true, onBack = onDismiss)
+    val str = LocalStrings.current
     val closeFocus = remember { FocusRequester() }
     Box(
         modifier = Modifier
@@ -640,16 +707,15 @@ private fun AboutDialog(onDismiss: () -> Unit) {
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    text = "Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                    text = str.version(BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE),
                     color = AppColors.textSecondary,
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                AboutRow("Developer", "Alejandro Cubero")
-                AboutRow("License", "GNU AGPL-3.0")
-                AboutRow("GitHub", REPO_URL.removePrefix("https://"))
+                AboutRow(str.aboutDeveloper, "Alejandro Cubero")
+                AboutRow(str.aboutLicense, "GNU AGPL-3.0")
+                AboutRow(str.aboutGithub, REPO_URL.removePrefix("https://"))
                 Text(
-                    text = "A read-only Android TV client for a self-hosted Immich server. " +
-                        "Unofficial — not affiliated with the Immich project.",
+                    text = str.aboutDescription,
                     color = AppColors.textSecondary,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(top = 4.dp),
@@ -658,12 +724,12 @@ private fun AboutDialog(onDismiss: () -> Unit) {
                     onClick = onDismiss,
                     modifier = Modifier.padding(top = 10.dp).focusRequester(closeFocus),
                     colors = brandButtonColors(),
-                ) { Text("Close") }
+                ) { Text(str.aboutClose) }
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 QrCode(content = REPO_URL)
                 Text(
-                    text = "Scan for the repo",
+                    text = str.aboutScan,
                     color = AppColors.textTertiary,
                     style = MaterialTheme.typography.labelSmall,
                 )
@@ -736,7 +802,7 @@ private fun AlbumTile(album: Album, onClick: () -> Unit) {
         ) {
             AsyncImage(
                 model = album.thumbnailUrl,
-                contentDescription = "Album: ${album.name}",
+                contentDescription = album.name,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize().background(AppColors.placeholder),
             )
@@ -750,7 +816,7 @@ private fun AlbumTile(album: Album, onClick: () -> Unit) {
             modifier = Modifier.padding(top = 6.dp),
         )
         Text(
-            text = "${album.assetCount} items",
+            text = LocalStrings.current.items(album.assetCount),
             color = AppColors.textSecondary,
             style = MaterialTheme.typography.bodySmall,
         )

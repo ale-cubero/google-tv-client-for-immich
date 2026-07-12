@@ -79,6 +79,7 @@ fun SetupScreen(
     viewModel: SetupViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val str = com.immichtv.ui.i18n.LocalStrings.current
     val urlFocus = remember { FocusRequester() }
     var showKey by remember { mutableStateOf(false) }
 
@@ -96,20 +97,20 @@ fun SetupScreen(
             modifier = Modifier.width(640.dp),
         ) {
             Text(
-                text = "Connect to Immich",
+                text = str.setupTitle,
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground,
             )
 
             TvTextField(
-                label = "Server URL",
+                label = str.setupServerUrl,
                 value = state.url,
                 onValueChange = viewModel::onUrlChange,
                 keyboardType = KeyboardType.Uri,
                 modifier = Modifier.focusRequester(urlFocus),
             )
             TvTextField(
-                label = "API Key",
+                label = str.setupApiKey,
                 value = state.apiKey,
                 onValueChange = viewModel::onApiKeyChange,
                 keyboardType = KeyboardType.Password,
@@ -118,15 +119,14 @@ fun SetupScreen(
             )
 
             ToggleRow(
-                label = "Show API key",
+                label = str.setupShowKey,
                 checked = showKey,
                 onToggle = { showKey = !showKey },
             )
 
             ToggleRow(
-                label = "Allow insecure connection",
-                subtitle = "Trust self-signed certificates and allow http:// — for self-hosted servers " +
-                    "without a valid certificate. The API key may travel unencrypted.",
+                label = str.setupInsecure,
+                subtitle = str.setupInsecureSubtitle,
                 checked = state.allowInsecure,
                 onToggle = { viewModel.onInsecureChange(!state.allowInsecure) },
             )
@@ -136,7 +136,7 @@ fun SetupScreen(
                 enabled = !state.validating,
                 colors = brandButtonColors(),
             ) {
-                Text(if (state.validating) "Validating…" else "Connect")
+                Text(if (state.validating) str.setupValidating else str.setupConnect)
             }
 
             state.error?.let { error ->

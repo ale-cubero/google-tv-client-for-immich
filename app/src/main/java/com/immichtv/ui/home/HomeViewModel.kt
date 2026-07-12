@@ -40,6 +40,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -83,10 +85,25 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch { settings.saveThemeMode(mode) }
     }
 
+    val language: StateFlow<com.immichtv.ui.i18n.Language> =
+        settings.language.stateIn(viewModelScope, SharingStarted.Eagerly, com.immichtv.ui.i18n.Language.ENGLISH)
+
+    fun setLanguage(language: com.immichtv.ui.i18n.Language) {
+        viewModelScope.launch { settings.saveLanguage(language) }
+    }
+
     private var loadedAt = 0L
 
     init {
         load()
+        // Re-fetch when the language changes so server-derived text (memory titles like
+        // "1 year ago", month labels) is re-localized, not just the static UI chrome.
+        viewModelScope.launch {
+            settings.language
+                .drop(1)
+                .distinctUntilChanged()
+                .collect { load() }
+        }
     }
 
     /** Home survives on the back stack; re-fetch when it resurfaces with stale data. */
@@ -123,7 +140,7 @@ class HomeViewModel @Inject constructor(
             val firstFailure = results.firstOrNull { it.isFailure }?.exceptionOrNull()
             loadedAt = System.currentTimeMillis()
             _state.value = if (results.all { it.isFailure } && firstFailure != null) {
-                HomeUiState.Error(firstFailure.toUserMessage())
+                HomeUiState.Error(firstFailure.toUserMessage(settings.currentStrings()))
             } else {
                 HomeUiState.Ready(
                     HomeData(

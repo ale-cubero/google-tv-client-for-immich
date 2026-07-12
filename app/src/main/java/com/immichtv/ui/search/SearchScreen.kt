@@ -86,6 +86,7 @@ fun SearchScreen(
     viewModel: SearchViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val str = com.immichtv.ui.i18n.LocalStrings.current
     val fieldFocus = remember { FocusRequester() }
 
     Column(
@@ -103,17 +104,14 @@ fun SearchScreen(
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
             when (val s = state) {
                 is SearchUiState.Idle ->
-                    EmptyState(
-                        title = "Search your library",
-                        subtitle = "Try “beach”, “birthday cake”, “dog”, “sunset” — Immich matches by meaning, not filenames.",
-                    )
-                is SearchUiState.Loading -> LoadingState("Searching…")
+                    EmptyState(title = str.searchIdleTitle, subtitle = str.searchIdleSubtitle)
+                is SearchUiState.Loading -> LoadingState(str.searchLoading)
                 is SearchUiState.Error -> ErrorState(s.message, onRetry = viewModel::retry)
                 is SearchUiState.Results ->
                     if (s.assets.isEmpty()) {
                         EmptyState(
-                            title = "No results",
-                            subtitle = "Nothing matched “${s.query}”. Try different words.",
+                            title = str.searchNoResultsTitle,
+                            subtitle = str.searchNoResultsSubtitle(s.query),
                         )
                     } else {
                         ResultsGrid(
@@ -156,7 +154,7 @@ private fun SearchField(onSubmit: (String) -> Unit, modifier: Modifier = Modifie
         Box(modifier = Modifier.fillMaxWidth()) {
             if (text.isEmpty()) {
                 Text(
-                    text = "Search your photos and videos",
+                    text = com.immichtv.ui.i18n.LocalStrings.current.searchHint,
                     color = AppColors.textSecondary,
                     style = TextStyle(fontSize = 20.sp),
                 )
@@ -197,7 +195,7 @@ private fun ResultsGrid(assets: List<Asset>, onOpen: (Int) -> Unit) {
     val firstCell = remember { FocusRequester() }
     Column {
         Text(
-            text = "${assets.size} result${if (assets.size == 1) "" else "s"}",
+            text = com.immichtv.ui.i18n.LocalStrings.current.results(assets.size),
             color = AppColors.textSecondary,
             style = MaterialTheme.typography.labelLarge,
             modifier = Modifier.padding(bottom = 12.dp),

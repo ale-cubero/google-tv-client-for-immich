@@ -31,6 +31,7 @@ import com.immichtv.domain.AssetDetail
 import com.immichtv.domain.BucketMeta
 import com.immichtv.domain.Memory
 import com.immichtv.domain.Person
+import com.immichtv.ui.i18n.stringsFor
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import java.time.OffsetDateTime
 import java.time.Year
@@ -38,11 +39,6 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
-
-private val MONTH_NAMES = listOf(
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
-)
 
 /**
  * Repository layer: returns domain models, never lets DTOs leak upward.
@@ -72,17 +68,14 @@ class ImmichRepository @Inject constructor(
     /** "On this day" memories, newest first, titled by how long ago. */
     suspend fun getMemories(): List<Memory> {
         val thisYear = Year.now().value
+        val strings = stringsFor(settings.languageSnapshot)
         return api.getMemories()
             .filter { it.assets.isNotEmpty() }
             .map { dto ->
                 val yearsAgo = (thisYear - dto.data.year).coerceAtLeast(0)
                 Memory(
                     id = dto.id,
-                    title = when (yearsAgo) {
-                        0 -> "This year"
-                        1 -> "1 year ago"
-                        else -> "$yearsAgo years ago"
-                    },
+                    title = if (yearsAgo == 0) strings.memoryThisYear else strings.memoryYearsAgo(yearsAgo),
                     assets = dto.assets.map { it.toDomain() },
                 )
             }
@@ -177,15 +170,22 @@ class ImmichRepository @Inject constructor(
      */
     suspend fun getTimelineBuckets(): List<BucketMeta> {
         var flatIndex = 0
+        val locale = settings.languageSnapshot.toLocale()
         return api.getBuckets(albumId = null).map { dto ->
             val year = dto.timeBucket.take(4).toIntOrNull() ?: 0
             val monthIdx = dto.timeBucket.drop(5).take(2).toIntOrNull() ?: 1
+            // Locale-aware month name (java.time gives lowercase in some locales — capitalize).
+            val monthName = runCatching {
+                java.time.Month.of(monthIdx)
+                    .getDisplayName(java.time.format.TextStyle.FULL, locale)
+                    .replaceFirstChar { if (it.isLowerCase()) it.titlecase(locale) else it.toString() }
+            }.getOrDefault("")
             val meta = BucketMeta(
                 timeBucket = dto.timeBucket,
                 count = dto.count,
                 flatIndex = flatIndex,
                 year = year,
-                label = "${MONTH_NAMES.getOrElse(monthIdx - 1) { "" }} $year",
+                label = "$monthName $year",
             )
             flatIndex += 1 + dto.count // 1 header row + one item per asset
             meta

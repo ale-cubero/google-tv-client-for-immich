@@ -51,13 +51,10 @@ fun AssetThumbnail(asset: Asset, modifier: Modifier = Modifier) {
         modifier = modifier.background(AppColors.placeholder),
         contentAlignment = Alignment.Center,
     ) {
+        val str = com.immichtv.ui.i18n.LocalStrings.current
         AsyncImage(
             model = asset.thumbnailUrl,
-            contentDescription = when {
-                asset.isVideo -> "Video"
-                asset.hasMotion -> "Motion photo"
-                else -> "Photo"
-            },
+            contentDescription = if (asset.isVideo) str.railVideos.dropLast(1) else str.kindPhoto,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize(),
         )

@@ -31,46 +31,47 @@ import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import javax.net.ssl.SSLHandshakeException
+import com.immichtv.ui.i18n.En
 
 class ErrorTextTest {
 
     @Test fun unknownHost_pointsAtAddressAndNetwork() {
-        assertTrue(UnknownHostException("host").toUserMessage().contains("Can't find your Immich server"))
+        assertTrue(UnknownHostException("host").toUserMessage(En).contains("Can't find your Immich server"))
     }
 
     @Test fun timeout_readsAsNotResponding() {
-        assertTrue(SocketTimeoutException().toUserMessage().contains("isn't responding"))
+        assertTrue(SocketTimeoutException().toUserMessage(En).contains("isn't responding"))
     }
 
     @Test fun connectRefused_readsAsUnreachable() {
-        assertTrue(ConnectException("refused").toUserMessage().contains("Can't reach your Immich server"))
+        assertTrue(ConnectException("refused").toUserMessage(En).contains("Can't reach your Immich server"))
     }
 
     @Test fun genericIo_readsAsUnreachable() {
-        assertTrue(IOException("connection reset").toUserMessage().contains("Can't reach your Immich server"))
+        assertTrue(IOException("connection reset").toUserMessage(En).contains("Can't reach your Immich server"))
     }
 
     @Test fun tlsFailure_hintsAtInsecureToggle() {
-        val msg = SSLHandshakeException("bad cert").toUserMessage()
+        val msg = SSLHandshakeException("bad cert").toUserMessage(En)
         assertTrue(msg.contains("Allow insecure connection"))
     }
 
     @Test fun unauthorized_pointsAtApiKey() {
-        assertTrue(httpException(401).toUserMessage().contains("API key was rejected"))
+        assertTrue(httpException(401).toUserMessage(En).contains("API key was rejected"))
     }
 
     @Test fun serverError_mentionsServerAndCode() {
-        val msg = httpException(503).toUserMessage()
+        val msg = httpException(503).toUserMessage(En)
         assertTrue(msg.contains("503"))
         assertTrue(msg.contains("server reported an error"))
     }
 
     @Test fun unknown_fallsBackToMessage() {
-        assertEquals("boom", IllegalStateException("boom").toUserMessage())
+        assertEquals("boom", IllegalStateException("boom").toUserMessage(En))
     }
 
     @Test fun unknown_blankMessage_usesGenericFallback() {
-        assertTrue(RuntimeException().toUserMessage().contains("Something went wrong"))
+        assertTrue(RuntimeException().toUserMessage(En).contains("Something went wrong"))
     }
 
     private fun httpException(code: Int): HttpException {

@@ -49,6 +49,7 @@ sealed interface TimelineUiState {
 class TimelineViewModel @Inject constructor(
     private val repository: ImmichRepository,
     private val viewerQueue: ViewerQueue,
+    private val settings: com.immichtv.data.prefs.SettingsRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<TimelineUiState>(TimelineUiState.Loading)
@@ -79,7 +80,7 @@ class TimelineViewModel @Inject constructor(
                     _state.value = TimelineUiState.Ready(buckets)
                 },
                 onFailure = { e ->
-                    _state.value = TimelineUiState.Error(e.toUserMessage())
+                    _state.value = TimelineUiState.Error(e.toUserMessage(settings.currentStrings()))
                 },
             )
         }

@@ -46,6 +46,7 @@ sealed interface SearchUiState {
 class SearchViewModel @Inject constructor(
     private val repository: ImmichRepository,
     private val viewerQueue: ViewerQueue,
+    private val settings: com.immichtv.data.prefs.SettingsRepository,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<SearchUiState>(SearchUiState.Idle)
@@ -61,7 +62,7 @@ class SearchViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { repository.searchSmart(q) }.fold(
                 onSuccess = { _state.value = SearchUiState.Results(q, it) },
-                onFailure = { _state.value = SearchUiState.Error(it.toUserMessage()) },
+                onFailure = { _state.value = SearchUiState.Error(it.toUserMessage(settings.currentStrings())) },
             )
         }
     }

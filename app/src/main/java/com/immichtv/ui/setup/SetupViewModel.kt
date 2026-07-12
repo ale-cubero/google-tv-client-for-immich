@@ -63,8 +63,9 @@ class SetupViewModel @Inject constructor(
         // The API key is a bearer credential: by default it only travels over TLS, so reject
         // http:// up front. The insecure opt-in (self-hosted servers without a valid cert) waives
         // this — the user has explicitly accepted an unencrypted/untrusted connection.
+        val strings = settings.currentStrings()
         if (!current.allowInsecure && current.url.trim().startsWith("http://")) {
-            _state.update { it.copy(error = "Only https:// servers are supported unless you enable an insecure connection below") }
+            _state.update { it.copy(error = strings.setupErrorHttps) }
             return
         }
         val normalized = ServerSettings(
@@ -73,7 +74,7 @@ class SetupViewModel @Inject constructor(
             allowInsecure = current.allowInsecure,
         )
         if (!normalized.isConfigured) {
-            _state.update { it.copy(error = "Enter both a server URL and an API key") }
+            _state.update { it.copy(error = strings.setupErrorBoth) }
             return
         }
 
@@ -89,7 +90,7 @@ class SetupViewModel @Inject constructor(
                     onConfigured()
                 },
                 onFailure = { e ->
-                    _state.update { it.copy(validating = false, error = e.toUserMessage()) }
+                    _state.update { it.copy(validating = false, error = e.toUserMessage(settings.currentStrings())) }
                 },
             )
         }

@@ -60,6 +60,7 @@ fun CollectionScreen(
     viewModel: CollectionViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val str = com.immichtv.ui.i18n.LocalStrings.current
 
     Box(
         modifier = Modifier
@@ -67,13 +68,13 @@ fun CollectionScreen(
             .background(MaterialTheme.colorScheme.background),
     ) {
         when (val s = state) {
-            is CollectionUiState.Loading -> LoadingState("Loading…")
+            is CollectionUiState.Loading -> LoadingState(str.collectionLoading)
             is CollectionUiState.Error -> ErrorState(s.message, onRetry = viewModel::load)
             is CollectionUiState.Ready ->
                 if (s.assets.isEmpty()) {
                     EmptyState(
-                        title = s.title.ifBlank { "Nothing here yet" },
-                        subtitle = "This collection has no photos or videos.",
+                        title = s.title.ifBlank { str.collectionEmptyTitle },
+                        subtitle = str.collectionEmptySubtitle,
                     )
                 } else {
                     CollectionGrid(
@@ -94,10 +95,11 @@ fun CollectionScreen(
 private fun CollectionGrid(title: String, assets: List<Asset>, onOpen: (Int) -> Unit) {
     val gridState = rememberLazyGridState()
     val firstCell = remember { FocusRequester() }
+    val str = com.immichtv.ui.i18n.LocalStrings.current
 
     Column(modifier = Modifier.fillMaxSize()) {
         Text(
-            text = "$title  ·  ${assets.size} items",
+            text = "$title  ·  ${str.items(assets.size)}",
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(start = 48.dp, top = 40.dp, bottom = 16.dp),

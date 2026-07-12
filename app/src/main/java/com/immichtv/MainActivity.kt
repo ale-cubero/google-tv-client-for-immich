@@ -39,6 +39,10 @@ import androidx.navigation.navArgument
 import com.immichtv.data.prefs.SettingsRepository
 import com.immichtv.ui.collection.CollectionScreen
 import com.immichtv.ui.home.HomeScreen
+import androidx.compose.runtime.CompositionLocalProvider
+import com.immichtv.ui.i18n.Language
+import com.immichtv.ui.i18n.LocalStrings
+import com.immichtv.ui.i18n.stringsFor
 import com.immichtv.ui.search.SearchScreen
 import com.immichtv.ui.setup.SetupScreen
 import com.immichtv.ui.theme.ImmichTvTheme
@@ -81,13 +85,19 @@ class AppViewModel @Inject constructor(
     val startConfigured: Boolean = settings.snapshot.isConfigured
     val themeMode: StateFlow<ThemeMode> =
         settings.themeMode.stateIn(viewModelScope, SharingStarted.Eagerly, ThemeMode.DARK)
+    val language: StateFlow<Language> =
+        settings.language.stateIn(viewModelScope, SharingStarted.Eagerly, Language.ENGLISH)
 }
 
 @Composable
 private fun AppRoot(appViewModel: AppViewModel = hiltViewModel()) {
     val themeMode by appViewModel.themeMode.collectAsStateWithLifecycle()
+    val language by appViewModel.language.collectAsStateWithLifecycle()
     ImmichTvTheme(mode = themeMode) {
-        AppContent(appViewModel)
+        // One string catalog for the whole tree; changing the language re-provides it live.
+        CompositionLocalProvider(LocalStrings provides stringsFor(language)) {
+            AppContent(appViewModel)
+        }
     }
 }
 

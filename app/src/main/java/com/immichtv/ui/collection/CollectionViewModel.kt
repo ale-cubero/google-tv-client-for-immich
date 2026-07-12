@@ -45,6 +45,7 @@ sealed interface CollectionUiState {
 class CollectionViewModel @Inject constructor(
     private val repository: ImmichRepository,
     private val viewerQueue: ViewerQueue,
+    private val settings: com.immichtv.data.prefs.SettingsRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -76,7 +77,7 @@ class CollectionViewModel @Inject constructor(
                     _state.value = CollectionUiState.Ready(title, assets)
                 },
                 onFailure = { e ->
-                    _state.value = CollectionUiState.Error(e.toUserMessage())
+                    _state.value = CollectionUiState.Error(e.toUserMessage(settings.currentStrings()))
                 },
             )
         }

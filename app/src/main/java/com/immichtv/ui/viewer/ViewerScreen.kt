@@ -323,7 +323,8 @@ private fun ViewerPager(
 
     val current = assets.getOrNull(pagerState.currentPage)
     val context = LocalContext.current
-    val hdrLabel = if (current?.isVideo == true) VideoHdr.label(videoColorInfo, context) else null
+    val str = com.immichtv.ui.i18n.LocalStrings.current
+    val hdrLabel = if (current?.isVideo == true) VideoHdr.label(videoColorInfo, context, str) else null
 
     // Hints fade out on their own; any key press dismisses them early (handled in the key listener).
     LaunchedEffect(Unit) {
@@ -497,7 +498,7 @@ private fun ViewerPager(
         if (slideshow) {
             OverlayChip(modifier = Modifier.align(Alignment.TopEnd).padding(24.dp)) {
                 Icon(Icons.Filled.Slideshow, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                Text("Slideshow", color = Color.White, style = MaterialTheme.typography.labelLarge)
+                Text(str.viewerSlideshow, color = Color.White, style = MaterialTheme.typography.labelLarge)
             }
         }
 
@@ -505,7 +506,7 @@ private fun ViewerPager(
             OverlayChip(modifier = Modifier.align(Alignment.TopStart).padding(24.dp)) {
                 Icon(Icons.Filled.MotionPhotosOn, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                 Text(
-                    text = if (motionPlaying) "LIVE" else "LIVE  ·  OK to play",
+                    text = if (motionPlaying) str.viewerLive else str.viewerLiveHint,
                     color = Color.White,
                     style = MaterialTheme.typography.labelLarge,
                 )
@@ -535,7 +536,7 @@ private fun ViewerPager(
         ) {
             OverlayChip(modifier = Modifier.padding(bottom = 64.dp)) {
                 Text(
-                    text = "OK play/pause · ◀ ▶ prev/next · hold ◀ ▶ seek · ▼ details · ⏯ slideshow",
+                    text = str.viewerHints,
                     color = Color(0xFFCDD3D9),
                     style = MaterialTheme.typography.labelLarge,
                 )
@@ -553,7 +554,7 @@ private fun ViewerPager(
             ) {
                 Icon(Icons.Filled.Warning, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
                 Text(
-                    text = "Can't play this video.\nThe server may be offline or unreachable.",
+                    text = str.viewerVideoError,
                     color = Color.White,
                     style = MaterialTheme.typography.bodyLarge,
                     textAlign = TextAlign.Center,
@@ -666,7 +667,7 @@ private fun PhotoPage(asset: Asset) {
         )
         AsyncImage(
             model = asset.previewUrl,
-            contentDescription = if (asset.hasMotion) "Motion photo" else "Photo",
+            contentDescription = com.immichtv.ui.i18n.LocalStrings.current.kindPhoto,
             contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize(),
         )
@@ -685,7 +686,7 @@ private fun VideoPage(player: ExoPlayer, poster: Asset, needsTexture: Boolean) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         AsyncImage(
             model = poster.previewUrl,
-            contentDescription = "Video",
+            contentDescription = null,
             contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize(),
         )
@@ -718,10 +719,8 @@ private fun MetadataSidePanel(
     scroll: androidx.compose.foundation.ScrollState,
     modifier: Modifier = Modifier,
 ) {
-    val kind = when {
-        asset?.isVideo == true -> "Video · " + if (isPlaying) "playing" else "paused"
-        else -> "Photo"
-    }
+    val str = com.immichtv.ui.i18n.LocalStrings.current
+    val kind = if (asset?.isVideo == true) str.kindVideo(isPlaying) else str.kindPhoto
     val loaded = (detail as? DetailState.Loaded)?.detail
     Column(
         modifier = modifier
@@ -742,20 +741,20 @@ private fun MetadataSidePanel(
             style = MaterialTheme.typography.bodyMedium,
         )
         // From the decoded video format + display state — independent of the Immich detail fetch.
-        LabeledRow("Dynamic range", hdr.orEmpty())
+        LabeledRow(str.metaDynamicRange, hdr.orEmpty())
         when (detail) {
             is DetailState.Loading ->
-                Text("Loading details…", color = AppColors.textSecondary, style = MaterialTheme.typography.bodyMedium)
+                Text(str.metaLoading, color = AppColors.textSecondary, style = MaterialTheme.typography.bodyMedium)
             is DetailState.Error ->
-                Text("Details unavailable", color = AppColors.textSecondary, style = MaterialTheme.typography.bodyMedium)
+                Text(str.metaUnavailable, color = AppColors.textSecondary, style = MaterialTheme.typography.bodyMedium)
             is DetailState.Loaded -> {
-                LabeledRow("Date", detail.detail.dateTaken)
-                LabeledRow("Location", detail.detail.location)
-                LabeledRow("Resolution", detail.detail.dimensions)
-                LabeledRow("Camera", detail.detail.camera)
-                LabeledRow("Lens", detail.detail.lens)
-                LabeledRow("Exposure", detail.detail.exposure)
-                LabeledRow("People", detail.detail.people.joinToString(", "))
+                LabeledRow(str.metaDate, detail.detail.dateTaken)
+                LabeledRow(str.metaLocation, detail.detail.location)
+                LabeledRow(str.metaResolution, detail.detail.dimensions)
+                LabeledRow(str.metaCamera, detail.detail.camera)
+                LabeledRow(str.metaLens, detail.detail.lens)
+                LabeledRow(str.metaExposure, detail.detail.exposure)
+                LabeledRow(str.metaPeople, detail.detail.people.joinToString(", "))
             }
         }
     }

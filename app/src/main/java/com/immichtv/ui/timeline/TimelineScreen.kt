@@ -81,6 +81,7 @@ fun TimelineScreen(
     viewModel: TimelineViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val str = com.immichtv.ui.i18n.LocalStrings.current
 
     Box(
         modifier = Modifier
@@ -88,14 +89,11 @@ fun TimelineScreen(
             .background(MaterialTheme.colorScheme.background),
     ) {
         when (val s = state) {
-            is TimelineUiState.Loading -> LoadingState("Loading timeline…")
+            is TimelineUiState.Loading -> LoadingState(str.timelineLoading)
             is TimelineUiState.Error -> ErrorState(s.message, onRetry = viewModel::load)
             is TimelineUiState.Ready ->
                 if (s.buckets.isEmpty()) {
-                    EmptyState(
-                        title = "Your timeline is empty",
-                        subtitle = "Photos and videos added in Immich will show up here.",
-                    )
+                    EmptyState(title = str.timelineEmptyTitle, subtitle = str.emptyLibrarySubtitle)
                 } else {
                     TimelineContent(s.buckets, viewModel, onOpenViewer)
                 }

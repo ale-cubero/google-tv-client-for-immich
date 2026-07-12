@@ -26,6 +26,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.immichtv.data.crypto.KeystoreCrypto
 import com.immichtv.domain.ServerSettings
 import com.immichtv.domain.SlideshowPrefs
+import com.immichtv.ui.i18n.Language
 import com.immichtv.ui.theme.ThemeMode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -61,19 +62,31 @@ class SettingsRepository @Inject constructor(
     private val keySlideshowInterval = intPreferencesKey("slideshow_interval_s")
     private val keySlideshowShuffle = booleanPreferencesKey("slideshow_shuffle")
     private val keyThemeMode = stringPreferencesKey("theme_mode")
+    private val keyLanguage = stringPreferencesKey("language")
 
     /** Latest settings, readable synchronously from an interceptor. */
     @Volatile
     var snapshot: ServerSettings = ServerSettings()
         private set
 
+    /** Latest UI language, readable synchronously from the repository (locale-aware formatting). */
+    @Volatile
+    var languageSnapshot: Language = Language.ENGLISH
+        private set
+
     val settings: Flow<ServerSettings> = dataStore.data.map { it.toSettings() }
+
+    // Declared before init so the collector below doesn't read an uninitialized property.
+    val language: Flow<Language> = dataStore.data.map { Language.fromTag(it[keyLanguage]) }
 
     init {
         // Seed synchronously so the very first request has credentials.
-        snapshot = runBlocking { dataStore.data.first().toSettings() }
-        // Keep the snapshot fresh on every change.
+        val seeded = runBlocking { dataStore.data.first() }
+        snapshot = seeded.toSettings()
+        languageSnapshot = Language.fromTag(seeded[keyLanguage])
+        // Keep the snapshots fresh on every change.
         scope.launch { settings.collect { snapshot = it } }
+        scope.launch { language.collect { languageSnapshot = it } }
     }
 
     /** Update the in-memory snapshot only — used to validate entered creds before persisting. */
@@ -105,6 +118,14 @@ class SettingsRepository @Inject constructor(
     suspend fun saveThemeMode(mode: ThemeMode) {
         dataStore.edit { it[keyThemeMode] = mode.name }
     }
+
+    suspend fun saveLanguage(language: Language) {
+        dataStore.edit { it[keyLanguage] = language.tag }
+    }
+
+    /** String catalog for the current language — for non-Compose code (view models, repository). */
+    fun currentStrings(): com.immichtv.ui.i18n.Strings =
+        com.immichtv.ui.i18n.stringsFor(languageSnapshot)
 
     /** Wipe all persisted server settings (logout) and reset the in-memory snapshot. */
     suspend fun clear() {
