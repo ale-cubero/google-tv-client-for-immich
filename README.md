@@ -12,7 +12,7 @@ A native **Android TV / Google TV** client for a self-hosted [Immich](https://im
 - ▶️ **Photo & video viewer** — full‑screen playback with hardware decoding, **HDR** support, and Motion Photos (Samsung/Apple/Google live photos).
 - 🎞️ **Slideshow & screensaver** — turn any view into a slideshow, or let the app be your TV's screensaver.
 - 🎨 **Light & dark themes** — styled after Immich's own colors.
-- 🌐 **English & Spanish** — switch the interface language in Settings.
+- 🌐 **Multilingual** — English, Spanish, Portuguese, and Italian, switchable in Settings.
 - 🔐 **Read‑only & private** — the app can never modify your server; your API key is encrypted on‑device.
 - 🏠 **Self‑hosting friendly** — an optional insecure mode for servers with self‑signed certificates or no valid certificate.
 - 🕹️ **Made for the remote** — every screen is fully operable with just **D‑pad + OK + Back**.

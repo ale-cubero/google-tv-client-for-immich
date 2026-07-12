@@ -563,6 +563,7 @@ private fun AppearanceDialog(
     LaunchedEffect(Unit) { runCatching { firstFocus.requestFocus() } }
 }
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun LanguageDialog(
     current: Language,
@@ -593,10 +594,14 @@ private fun LanguageDialog(
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.SemiBold,
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            // FlowRow so the language chips wrap to a second line instead of clipping.
+            androidx.compose.foundation.layout.FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 Language.entries.forEachIndexed { i, lang ->
                     OptionChip(
-                        // Each language shown in its own name (English / Español).
+                        // Each language shown in its own name (English / Español / …).
                         label = lang.displayName,
                         selected = current == lang,
                         modifier = if (i == 0) Modifier.focusRequester(firstFocus) else Modifier,

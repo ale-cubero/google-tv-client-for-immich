@@ -22,7 +22,9 @@ import java.util.Locale
 /** UI language, user-selectable and persisted. Drives both string resources and locale-aware formatting. */
 enum class Language(val tag: String, val displayName: String) {
     ENGLISH("en", "English"),
-    SPANISH("es", "Español");
+    SPANISH("es", "Español"),
+    PORTUGUESE("pt", "Português"),
+    ITALIAN("it", "Italiano");
 
     fun toLocale(): Locale = Locale.forLanguageTag(tag)
 
