@@ -847,32 +847,40 @@ private fun AssetTile(asset: Asset, onClick: () -> Unit) {
 
 @Composable
 private fun AlbumTile(album: Album, onClick: () -> Unit) {
-    // Image + caption live INSIDE the card so the whole tile scales as one unit on focus —
-    // the enlarged thumbnail can never cover its own label.
+    // Overlay style (like Places/Memories): name + count sit over the thumbnail on a gradient,
+    // inside the card so they scale with the image and are never covered.
     Card(
         onClick = onClick,
         border = CardFocus.border(),
         scale = CardFocus.scale(),
-        modifier = Modifier.width(200.dp),
+        modifier = Modifier.size(200.dp),
     ) {
-        Column {
+        Box(modifier = Modifier.fillMaxSize().background(AppColors.placeholder)) {
             AsyncImage(
                 model = album.thumbnailUrl,
                 contentDescription = album.name,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.size(200.dp).background(AppColors.placeholder),
+                modifier = Modifier.fillMaxSize(),
             )
-            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(88.dp)
+                    .align(Alignment.BottomCenter)
+                    .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xCC000000)))),
+            )
+            Column(modifier = Modifier.align(Alignment.BottomStart).padding(14.dp)) {
                 Text(
                     text = album.name,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = LocalStrings.current.items(album.assetCount),
-                    color = AppColors.textSecondary,
+                    color = Color(0xFFDFE3E7),
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
@@ -882,27 +890,35 @@ private fun AlbumTile(album: Album, onClick: () -> Unit) {
 
 @Composable
 private fun PersonTile(person: Person, onClick: () -> Unit) {
-    // Same as albums: name lives inside the card so it scales with the avatar (never covered).
+    // Overlay style (like Places/Memories): name over the avatar on a gradient, inside the card.
     Card(
         onClick = onClick,
         border = CardFocus.border(),
         scale = CardFocus.scale(),
-        modifier = Modifier.width(140.dp),
+        modifier = Modifier.size(140.dp),
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(modifier = Modifier.fillMaxSize().background(AppColors.placeholder)) {
             AsyncImage(
                 model = person.thumbnailUrl,
                 contentDescription = person.name,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.size(140.dp).background(AppColors.placeholder),
+                modifier = Modifier.fillMaxSize(),
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(64.dp)
+                    .align(Alignment.BottomCenter)
+                    .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xCC000000)))),
             )
             Text(
                 text = person.name,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = Color.White,
                 style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
+                modifier = Modifier.align(Alignment.BottomStart).padding(12.dp),
             )
         }
     }
