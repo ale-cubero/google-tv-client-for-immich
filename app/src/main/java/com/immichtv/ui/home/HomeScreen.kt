@@ -41,6 +41,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Info
@@ -563,7 +564,6 @@ private fun AppearanceDialog(
     LaunchedEffect(Unit) { runCatching { firstFocus.requestFocus() } }
 }
 
-@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun LanguageDialog(
     current: Language,
@@ -572,47 +572,83 @@ private fun LanguageDialog(
 ) {
     BackHandler(enabled = true, onBack = onDismiss)
     val str = LocalStrings.current
-    val firstFocus = remember { FocusRequester() }
+    val currentFocus = remember { FocusRequester() }
+    // Dropdown-style menu anchored under the Settings button (like the Settings menu itself).
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(AppColors.scrim)
             .clickable(onClick = onDismiss),
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.TopEnd,
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
             modifier = Modifier
-                .widthIn(max = 520.dp)
-                .background(AppColors.panel, RoundedCornerShape(16.dp))
-                .border(1.dp, AppColors.outline, RoundedCornerShape(16.dp))
-                .padding(horizontal = 36.dp, vertical = 30.dp),
+                .padding(top = 84.dp, end = 48.dp)
+                .width(300.dp)
+                .background(AppColors.panel, RoundedCornerShape(14.dp))
+                .border(1.dp, AppColors.outline, RoundedCornerShape(14.dp))
+                .padding(vertical = 10.dp),
         ) {
             Text(
                 text = str.languageTitle,
-                color = MaterialTheme.colorScheme.onSurface,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.SemiBold,
+                color = AppColors.textSecondary,
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
             )
-            // FlowRow so the language chips wrap to a second line instead of clipping.
-            androidx.compose.foundation.layout.FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Language.entries.forEachIndexed { i, lang ->
-                    OptionChip(
-                        // Each language shown in its own name (English / Español / …).
-                        label = lang.displayName,
-                        selected = current == lang,
-                        modifier = if (i == 0) Modifier.focusRequester(firstFocus) else Modifier,
-                        onClick = { onSelect(lang) },
-                    )
-                }
+            Language.entries.forEach { lang ->
+                val selected = current == lang
+                LanguageRow(
+                    label = lang.displayName,
+                    selected = selected,
+                    modifier = if (selected) Modifier.focusRequester(currentFocus) else Modifier,
+                    // Dropdown behavior: pick and close immediately.
+                    onClick = { onSelect(lang); onDismiss() },
+                )
             }
-            Button(onClick = onDismiss, colors = brandButtonColors()) { Text(str.actionDone) }
         }
     }
-    LaunchedEffect(Unit) { runCatching { firstFocus.requestFocus() } }
+    // Open with focus on the current language.
+    LaunchedEffect(Unit) { runCatching { currentFocus.requestFocus() } }
+}
+
+@Composable
+private fun LanguageRow(
+    label: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    var focused by remember { mutableStateOf(false) }
+    val fg = if (focused) MaterialTheme.colorScheme.onBackground else AppColors.textSecondary
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 10.dp)
+            .onFocusChanged { focused = it.isFocused }
+            .clickable(onClick = onClick)
+            .background(
+                if (focused) AppColors.menuFocus else Color.Transparent,
+                RoundedCornerShape(8.dp),
+            )
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+    ) {
+        Text(
+            text = label,
+            color = fg,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f),
+        )
+        if (selected) {
+            Icon(
+                imageVector = Icons.Filled.Check,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    }
 }
 
 @Composable
