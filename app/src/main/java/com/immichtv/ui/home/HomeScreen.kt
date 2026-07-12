@@ -834,63 +834,64 @@ private fun AssetTile(asset: Asset, onClick: () -> Unit) {
 
 @Composable
 private fun AlbumTile(album: Album, onClick: () -> Unit) {
-    Column(modifier = Modifier.width(200.dp)) {
-        Card(
-            onClick = onClick,
-            border = CardFocus.border(),
-            scale = CardFocus.scale(),
-            modifier = Modifier.size(200.dp),
-        ) {
+    // Image + caption live INSIDE the card so the whole tile scales as one unit on focus —
+    // the enlarged thumbnail can never cover its own label.
+    Card(
+        onClick = onClick,
+        border = CardFocus.border(),
+        scale = CardFocus.scale(),
+        modifier = Modifier.width(200.dp),
+    ) {
+        Column {
             AsyncImage(
                 model = album.thumbnailUrl,
                 contentDescription = album.name,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize().background(AppColors.placeholder),
+                modifier = Modifier.size(200.dp).background(AppColors.placeholder),
             )
+            Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+                Text(
+                    text = album.name,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = LocalStrings.current.items(album.assetCount),
+                    color = AppColors.textSecondary,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
         }
-        Text(
-            text = album.name,
-            color = MaterialTheme.colorScheme.onBackground,
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 6.dp),
-        )
-        Text(
-            text = LocalStrings.current.items(album.assetCount),
-            color = AppColors.textSecondary,
-            style = MaterialTheme.typography.bodySmall,
-        )
     }
 }
 
 @Composable
 private fun PersonTile(person: Person, onClick: () -> Unit) {
-    Column(
+    // Same as albums: name lives inside the card so it scales with the avatar (never covered).
+    Card(
+        onClick = onClick,
+        border = CardFocus.border(),
+        scale = CardFocus.scale(),
         modifier = Modifier.width(140.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Card(
-            onClick = onClick,
-            border = CardFocus.border(),
-            scale = CardFocus.scale(),
-            modifier = Modifier.size(140.dp),
-        ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             AsyncImage(
                 model = person.thumbnailUrl,
                 contentDescription = person.name,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize().background(AppColors.placeholder),
+                modifier = Modifier.size(140.dp).background(AppColors.placeholder),
+            )
+            Text(
+                text = person.name,
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
             )
         }
-        Text(
-            text = person.name,
-            color = MaterialTheme.colorScheme.onBackground,
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 6.dp),
-        )
     }
 }
 
