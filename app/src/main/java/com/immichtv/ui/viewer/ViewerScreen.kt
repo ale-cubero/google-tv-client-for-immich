@@ -345,9 +345,8 @@ private fun ViewerPager(
     val str = com.immichtv.ui.i18n.LocalStrings.current
     val hdrLabel = if (current?.isVideo == true) VideoHdr.label(videoColorInfo, context, str) else null
 
-    // "Go to this day" is offered only for a photo opened from the memories rail.
-    val canGoToDay = viewModel.fromMemories &&
-        current?.isVideo == false && current.dateTime.isNotBlank()
+    // "Go to this day" is offered for any dated asset opened from the memories rail.
+    val canGoToDay = viewModel.fromMemories && current?.dateTime?.isNotBlank() == true
     // Context actions offered by the OK menu (left→right). Motion-photo and video are exclusive.
     val actions = buildList {
         if (canGoToDay) add(ViewerAction.GO_TO_DAY)
