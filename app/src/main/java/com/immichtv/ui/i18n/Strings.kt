@@ -115,6 +115,7 @@ interface Strings {
     val viewerActionPlayMotion: String
     val viewerActionPlay: String
     val viewerActionPause: String
+    val viewerActionDetails: String
     val viewerActionSlideshow: String
     val metaLoading: String
     val metaUnavailable: String
@@ -228,7 +229,7 @@ object En : Strings {
     override fun results(n: Int) = if (n == 1) "1 result" else "$n results"
 
     override val viewerHints =
-        "OK options · ◀ ▶ prev/next · hold ◀ ▶ seek · ▼ details"
+        "OK options · ◀ ▶ prev/next · hold ◀ ▶ seek"
     override val viewerSlideshow = "Slideshow"
     override val viewerLive = "LIVE"
     override val viewerLiveHint = "LIVE"
@@ -237,6 +238,7 @@ object En : Strings {
     override val viewerActionPlayMotion = "Play motion photo"
     override val viewerActionPlay = "Play"
     override val viewerActionPause = "Pause"
+    override val viewerActionDetails = "Show details"
     override val viewerActionSlideshow = "Start slideshow"
     override val metaLoading ="Loading details…"
     override val metaUnavailable = "Details unavailable"
@@ -353,7 +355,7 @@ object Es : Strings {
     override fun results(n: Int) = if (n == 1) "1 resultado" else "$n resultados"
 
     override val viewerHints =
-        "OK opciones · ◀ ▶ anterior/siguiente · mantén ◀ ▶ avanzar · ▼ detalles"
+        "OK opciones · ◀ ▶ anterior/siguiente · mantén ◀ ▶ avanzar"
     override val viewerSlideshow = "Presentación"
     override val viewerLive = "EN VIVO"
     override val viewerLiveHint = "EN VIVO"
@@ -363,6 +365,7 @@ object Es : Strings {
     override val viewerActionPlayMotion = "Reproducir foto en movimiento"
     override val viewerActionPlay = "Reproducir"
     override val viewerActionPause = "Pausar"
+    override val viewerActionDetails = "Ver detalles"
     override val viewerActionSlideshow = "Iniciar presentación"
     override val metaLoading = "Cargando detalles…"
     override val metaUnavailable = "Detalles no disponibles"
@@ -479,7 +482,7 @@ object Pt : Strings {
     override fun results(n: Int) = if (n == 1) "1 resultado" else "$n resultados"
 
     override val viewerHints =
-        "OK opções · ◀ ▶ anterior/próximo · segure ◀ ▶ avançar · ▼ detalhes"
+        "OK opções · ◀ ▶ anterior/próximo · segure ◀ ▶ avançar"
     override val viewerSlideshow = "Apresentação"
     override val viewerLive = "AO VIVO"
     override val viewerLiveHint = "AO VIVO"
@@ -489,6 +492,7 @@ object Pt : Strings {
     override val viewerActionPlayMotion = "Reproduzir foto em movimento"
     override val viewerActionPlay = "Reproduzir"
     override val viewerActionPause = "Pausar"
+    override val viewerActionDetails = "Ver detalhes"
     override val viewerActionSlideshow = "Iniciar apresentação"
     override val metaLoading = "Carregando detalhes…"
     override val metaUnavailable = "Detalhes indisponíveis"
@@ -605,7 +609,7 @@ object It : Strings {
     override fun results(n: Int) = if (n == 1) "1 risultato" else "$n risultati"
 
     override val viewerHints =
-        "OK opzioni · ◀ ▶ prec/succ · tieni ◀ ▶ scorri · ▼ dettagli"
+        "OK opzioni · ◀ ▶ prec/succ · tieni ◀ ▶ scorri"
     override val viewerSlideshow = "Presentazione"
     override val viewerLive = "LIVE"
     override val viewerLiveHint = "LIVE"
@@ -615,6 +619,7 @@ object It : Strings {
     override val viewerActionPlayMotion = "Riproduci foto animata"
     override val viewerActionPlay = "Riproduci"
     override val viewerActionPause = "Pausa"
+    override val viewerActionDetails = "Mostra dettagli"
     override val viewerActionSlideshow = "Avvia presentazione"
     override val metaLoading = "Caricamento dettagli…"
     override val metaUnavailable = "Dettagli non disponibili"

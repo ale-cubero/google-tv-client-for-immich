@@ -43,6 +43,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MotionPhotosOn
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -105,7 +106,7 @@ private const val SCRUB_HIDE_MS = 3_000L
 private const val POSITION_CHIP_MS = 2_000L
 
 /** Actions offered by the OK menu, depending on the current asset. */
-private enum class ViewerAction { PLAY_MOTION, PLAY_PAUSE, SLIDESHOW }
+private enum class ViewerAction { PLAY_MOTION, PLAY_PAUSE, DETAILS, SLIDESHOW }
 
 @Composable
 fun ViewerScreen(
@@ -346,6 +347,7 @@ private fun ViewerPager(
     val actions = buildList {
         if (current?.hasMotion == true) add(ViewerAction.PLAY_MOTION)
         if (current?.isVideo == true) add(ViewerAction.PLAY_PAUSE)
+        add(ViewerAction.DETAILS)
         add(ViewerAction.SLIDESHOW)
     }
     // Close the action bar whenever the visible asset changes.
@@ -451,6 +453,7 @@ private fun ViewerPager(
                                             showActions = false
                                             if (player.isPlaying) player.pause() else player.play()
                                         }
+                                        ViewerAction.DETAILS -> { showActions = false; showInfo = true }
                                         ViewerAction.SLIDESHOW -> { showActions = false; slideshow = true }
                                         null -> showActions = false
                                     }
@@ -464,9 +467,8 @@ private fun ViewerPager(
                             slideshow = false
                             when {
                                 showActions -> showActions = false
-                                // Panel open: scroll it. Closed: open it.
+                                // Panel open: scroll it. (Details is opened from the OK action bar.)
                                 showInfo -> scope.launch { panelScroll.animateScrollBy(220f) }
-                                else -> showInfo = true
                             }
                             true
                         }
@@ -662,11 +664,13 @@ private fun ActionBar(
             val icon = when (action) {
                 ViewerAction.PLAY_MOTION -> Icons.Filled.MotionPhotosOn
                 ViewerAction.PLAY_PAUSE -> if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow
+                ViewerAction.DETAILS -> Icons.Filled.Info
                 ViewerAction.SLIDESHOW -> Icons.Filled.Slideshow
             }
             val label = when (action) {
                 ViewerAction.PLAY_MOTION -> str.viewerActionPlayMotion
                 ViewerAction.PLAY_PAUSE -> if (isPlaying) str.viewerActionPause else str.viewerActionPlay
+                ViewerAction.DETAILS -> str.viewerActionDetails
                 ViewerAction.SLIDESHOW -> str.viewerActionSlideshow
             }
             val on = i == selected
