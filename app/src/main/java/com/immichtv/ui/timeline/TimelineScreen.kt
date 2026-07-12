@@ -77,6 +77,10 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 private const val COLUMNS = 6
 
+// Focused row rests this far down from the top of the viewport (pivot feel). The year scrubber
+// samples the same line so its highlight matches where you're actually looking.
+private const val PIVOT_FRACTION = 0.35f
+
 @Composable
 fun TimelineScreen(
     onOpenViewer: () -> Unit = {},
@@ -128,7 +132,7 @@ private fun TimelineContent(
                 offset: Float,
                 size: Float,
                 containerSize: Float,
-            ): Float = offset - containerSize * 0.35f
+            ): Float = offset - containerSize * PIVOT_FRACTION
         }
     }
 
@@ -139,10 +143,20 @@ private fun TimelineContent(
         }.distinctUntilChanged().collect { viewModel.onVisibleBuckets(it) }
     }
 
-    // Track the year at the top of the viewport so the scrubber can indicate where you are.
+    // Track the year the user is actually looking at so the scrubber can indicate where you are.
+    // Sample the item nearest the focus pivot line (~35% down), NOT the top edge: the focused row
+    // is pivoted 35% down, so the top of the viewport shows the previous (newer) year's tail —
+    // reading that would light up the year *above* the one you're on.
     var currentYear by remember { androidx.compose.runtime.mutableIntStateOf(buckets.firstOrNull()?.year ?: 0) }
     LaunchedEffect(gridState, buckets) {
-        snapshotFlow { gridState.layoutInfo.visibleItemsInfo.firstOrNull()?.key?.let(::bucketOfKey) }
+        snapshotFlow {
+            val info = gridState.layoutInfo
+            val pivotY = info.viewportStartOffset +
+                (info.viewportEndOffset - info.viewportStartOffset) * PIVOT_FRACTION
+            info.visibleItemsInfo
+                .minByOrNull { kotlin.math.abs((it.offset.y + it.size.height / 2f) - pivotY) }
+                ?.key?.let(::bucketOfKey)
+        }
             .distinctUntilChanged()
             .collect { tb ->
                 buckets.firstOrNull { it.timeBucket == tb }?.let { currentYear = it.year }
