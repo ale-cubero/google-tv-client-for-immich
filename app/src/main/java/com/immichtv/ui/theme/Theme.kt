@@ -34,10 +34,11 @@ import androidx.tv.material3.lightColorScheme
 enum class ThemeMode { DARK, LIGHT }
 
 /**
- * User-selectable text size, persisted in settings. [scale] multiplies the base type sizes;
- * [LARGE] is 1.0 (the base scale), [NORMAL] is the default, [SMALL] is smaller still.
+ * User-selectable text size, persisted in settings. [scale] multiplies the base type sizes.
+ * [NORMAL] (the default) matches what used to be "Small"; [SMALL] and [LARGE] step 0.10 on either
+ * side of it.
  */
-enum class TextSize(val scale: Float) { SMALL(0.78f), NORMAL(0.88f), LARGE(1.0f) }
+enum class TextSize(val scale: Float) { SMALL(0.68f), NORMAL(0.78f), LARGE(0.88f) }
 
 /** Active text size, provided by [ImmichTvTheme] so nested themes (e.g. the viewer) inherit it. */
 val LocalTextSize = staticCompositionLocalOf { TextSize.NORMAL }
