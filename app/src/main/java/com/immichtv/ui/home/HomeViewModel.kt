@@ -171,6 +171,12 @@ class HomeViewModel @Inject constructor(
     fun openAssets(assets: List<Asset>, index: Int, fromMemories: Boolean = false) =
         viewerQueue.set(assets, index, fromMemories = fromMemories)
 
+    // Places rail thumbnails are fetched lazily as tiles scroll into view (the city list can be
+    // large); cache per city so re-scrolling doesn't re-query.
+    private val placeThumbs = java.util.concurrent.ConcurrentHashMap<String, String>()
+    suspend fun placeThumbnail(city: String): String =
+        placeThumbs[city] ?: repository.getPlaceThumbnail(city).also { placeThumbs[city] = it }
+
     /**
      * Clear stored server URL + API key AND all cached media (Coil memory + disk cache), so
      * thumbnails/previews of the library don't outlive the session on disk. Then [onDone]

@@ -69,7 +69,11 @@ interface ImmichApi {
     @POST("api/search/smart")
     suspend fun searchSmart(@Body body: SmartSearchRequest): SearchResponseDto
 
-    // Grouped explore data (Places = the exifInfo.city group).
+    // Grouped explore data (Places = the exifInfo.city group). NOTE: a curated subset, not every city.
     @GET("api/search/explore")
     suspend fun getExplore(): List<ExploreGroupDto>
+
+    // Distinct values for a field — `type=city` returns ALL cities in the library (unlike explore).
+    @GET("api/search/suggestions")
+    suspend fun getSearchSuggestions(@Query("type") type: String): List<String>
 }

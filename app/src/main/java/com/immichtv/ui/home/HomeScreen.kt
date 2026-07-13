@@ -61,6 +61,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
@@ -164,6 +165,7 @@ fun HomeScreen(
                 onOpenAlbum = onOpenAlbum,
                 onOpenPerson = onOpenPerson,
                 onOpenPlace = onOpenPlace,
+                loadPlaceThumbnail = viewModel::placeThumbnail,
                 onOpenSettings = { showMenu = true },
             )
         }
@@ -217,6 +219,7 @@ private fun HomeContent(
     onOpenAlbum: (String, String) -> Unit,
     onOpenPerson: (String, String) -> Unit,
     onOpenPlace: (String) -> Unit,
+    loadPlaceThumbnail: suspend (String) -> String,
     onOpenSettings: () -> Unit,
 ) {
     val isEmpty = data == HomeData()
@@ -302,7 +305,7 @@ private fun HomeContent(
         if (data.places.isNotEmpty()) item {
             Rail(str.railPlaces) {
                 itemsIndexed(data.places) { _, place ->
-                    PlaceTile(place) { onOpenPlace(place.city) }
+                    PlaceTile(place, loadThumbnail = loadPlaceThumbnail) { onOpenPlace(place.city) }
                 }
             }
         }
@@ -1009,9 +1012,17 @@ private fun PersonTile(person: Person, onClick: () -> Unit) {
 }
 
 @Composable
-private fun PlaceTile(place: Place, onClick: () -> Unit) {
+private fun PlaceTile(
+    place: Place,
+    loadThumbnail: suspend (String) -> String,
+    onClick: () -> Unit,
+) {
     // A labeled location banner (like memories): city name over the representative photo. The label
     // is inside the card, so it scales with the image and is never covered.
+    // Thumbnail loads lazily once the tile is composed (in view), keyed by city.
+    val thumbnailUrl by produceState(place.thumbnailUrl, place.city) {
+        if (value.isBlank()) value = loadThumbnail(place.city)
+    }
     Card(
         onClick = onClick,
         border = CardFocus.border(),
@@ -1020,7 +1031,7 @@ private fun PlaceTile(place: Place, onClick: () -> Unit) {
     ) {
         Box(modifier = Modifier.fillMaxSize().background(AppColors.placeholder)) {
             AsyncImage(
-                model = place.thumbnailUrl,
+                model = thumbnailUrl,
                 contentDescription = place.city,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),

@@ -56,15 +56,19 @@ class ImmichRepository @Inject constructor(
         check(token.authStatus) { "API key rejected by server" }
     }
 
-    suspend fun getAlbums(): List<Album> =
-        api.getAlbums().map {
-            Album(
-                id = it.id,
-                name = it.albumName,
-                assetCount = it.assetCount,
-                thumbnailUrl = it.albumThumbnailAssetId?.let(::thumbnailUrl).orEmpty(),
-            )
-        }
+    suspend fun getAlbums(): List<Album> {
+        val collator = java.text.Collator.getInstance(settings.languageSnapshot.toLocale())
+        return api.getAlbums()
+            .map {
+                Album(
+                    id = it.id,
+                    name = it.albumName,
+                    assetCount = it.assetCount,
+                    thumbnailUrl = it.albumThumbnailAssetId?.let(::thumbnailUrl).orEmpty(),
+                )
+            }
+            .sortedWith { a, b -> collator.compare(a.name, b.name) } // locale-aware alphabetical
+    }
 
     /** "On this day" memories for TODAY, newest first, titled by how long ago. */
     suspend fun getMemories(): List<Memory> {
@@ -114,13 +118,42 @@ class ImmichRepository @Inject constructor(
         api.searchSmart(SmartSearchRequest(query = query.trim(), size = limit))
             .assets.items.map { it.toDomain() }
 
-    /** Geographic places (cities) for the Places rail — the `exifInfo.city` explore group. */
-    suspend fun getPlaces(): List<Place> =
+    /**
+     * Geographic places (cities) for the Places rail. Uses `search/suggestions?type=city`, which
+     * returns EVERY city (the explore group is only a curated subset), then fetches one representative
+     * thumbnail per city in parallel. Falls back to the explore group if suggestions is unavailable.
+     */
+    suspend fun getPlaces(): List<Place> {
+        val collator = java.text.Collator.getInstance(settings.languageSnapshot.toLocale())
+        val cities = runCatching { api.getSearchSuggestions(type = "city") }
+            .getOrDefault(emptyList())
+            .filter { it.isNotBlank() }
+            .distinct()
+        // Names only, sorted — thumbnails load lazily per tile ([getPlaceThumbnail]) so a library with
+        // hundreds of cities doesn't stall the Home screen on one big burst of searches.
+        if (cities.isEmpty()) return explorePlaces(collator)
+        return cities.map { Place(city = it, thumbnailUrl = "") }
+            .sortedWith { a, b -> collator.compare(a.city, b.city) }
+    }
+
+    /** A representative thumbnail for one city (its newest normally-visible asset), or "" if none. */
+    suspend fun getPlaceThumbnail(city: String): String {
+        val id = runCatching {
+            api.searchMetadata(
+                SearchMetadataRequest(city = city, visibility = "timeline", size = 1),
+            ).assets.items.firstOrNull()?.id
+        }.getOrNull()
+        return id?.let(::thumbnailUrl).orEmpty()
+    }
+
+    /** Fallback places from the explore `exifInfo.city` group (a curated subset). */
+    private suspend fun explorePlaces(collator: java.text.Collator): List<Place> =
         api.getExplore()
             .firstOrNull { it.fieldName == "exifInfo.city" }
             ?.items
             ?.filter { it.value.isNotBlank() }
             ?.map { Place(city = it.value, thumbnailUrl = thumbnailUrl(it.data.id)) }
+            ?.sortedWith { a, b -> collator.compare(a.city, b.city) }
             .orEmpty()
 
     /** All normally-visible assets taken in one city. */
