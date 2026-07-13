@@ -29,6 +29,7 @@ interface Strings {
     val timeline: String
     val searchHint: String
     val settings: String
+    val retry: String
     val railOnThisDay: String
     val railRecent: String
     val railAlbums: String
@@ -153,6 +154,7 @@ object En : Strings {
     override val timeline = "Timeline"
     override val searchHint = "Search your photos and videos"
     override val settings = "Settings"
+    override val retry = "Retry"
     override val railOnThisDay = "On this day"
     override val railRecent = "Recent"
     override val railAlbums = "Albums"
@@ -185,7 +187,7 @@ object En : Strings {
     override val slideshowOrder = "Order"
     override val slideshowInOrder = "In order"
     override val slideshowShuffle = "Shuffle"
-    override val slideshowNote = "Applies to the viewer slideshow (⏯) and the screensaver."
+    override val slideshowNote = "Applies to the viewer slideshow and the screensaver."
 
     override fun version(name: String, code: Int) = "Version $name ($code)"
     override val aboutDeveloper = "Developer"
@@ -279,6 +281,7 @@ object Es : Strings {
     override val timeline = "Línea de tiempo"
     override val searchHint = "Busca tus fotos y videos"
     override val settings = "Ajustes"
+    override val retry = "Reintentar"
     override val railOnThisDay = "En este día"
     override val railRecent = "Recientes"
     override val railAlbums = "Álbumes"
@@ -311,7 +314,7 @@ object Es : Strings {
     override val slideshowOrder = "Orden"
     override val slideshowInOrder = "En orden"
     override val slideshowShuffle = "Aleatorio"
-    override val slideshowNote = "Se aplica a la presentación del visor (⏯) y al protector de pantalla."
+    override val slideshowNote = "Se aplica a la presentación del visor y al protector de pantalla."
 
     override fun version(name: String, code: Int) = "Versión $name ($code)"
     override val aboutDeveloper = "Desarrollador"
@@ -406,6 +409,7 @@ object Pt : Strings {
     override val timeline = "Linha do tempo"
     override val searchHint = "Busque suas fotos e vídeos"
     override val settings = "Configurações"
+    override val retry = "Tentar novamente"
     override val railOnThisDay = "Neste dia"
     override val railRecent = "Recentes"
     override val railAlbums = "Álbuns"
@@ -438,7 +442,7 @@ object Pt : Strings {
     override val slideshowOrder = "Ordem"
     override val slideshowInOrder = "Em ordem"
     override val slideshowShuffle = "Aleatório"
-    override val slideshowNote = "Aplica-se à apresentação do visualizador (⏯) e à proteção de tela."
+    override val slideshowNote = "Aplica-se à apresentação do visualizador e à proteção de tela."
 
     override fun version(name: String, code: Int) = "Versão $name ($code)"
     override val aboutDeveloper = "Desenvolvedor"
@@ -533,6 +537,7 @@ object It : Strings {
     override val timeline = "Cronologia"
     override val searchHint = "Cerca tra le tue foto e i video"
     override val settings = "Impostazioni"
+    override val retry = "Riprova"
     override val railOnThisDay = "In questo giorno"
     override val railRecent = "Recenti"
     override val railAlbums = "Album"
@@ -565,7 +570,7 @@ object It : Strings {
     override val slideshowOrder = "Ordine"
     override val slideshowInOrder = "In ordine"
     override val slideshowShuffle = "Casuale"
-    override val slideshowNote = "Si applica alla presentazione del visualizzatore (⏯) e al salvaschermo."
+    override val slideshowNote = "Si applica alla presentazione del visualizzatore e al salvaschermo."
 
     override fun version(name: String, code: Int) = "Versione $name ($code)"
     override val aboutDeveloper = "Sviluppatore"

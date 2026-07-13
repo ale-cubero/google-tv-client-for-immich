@@ -21,17 +21,22 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Button
+import androidx.tv.material3.Icon
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import com.immichtv.ui.i18n.LocalStrings
 import com.immichtv.ui.theme.AppColors
 
-/** Centered error message with a focusable Retry button. */
+/** Centered error: icon + message + a focusable Retry button (mirrors the viewer's error state). */
 @Composable
 fun ErrorState(message: String, onRetry: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -39,13 +44,19 @@ fun ErrorState(message: String, onRetry: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
+            Icon(
+                imageVector = Icons.Filled.CloudOff,
+                contentDescription = null,
+                tint = AppColors.error,
+                modifier = Modifier.size(48.dp),
+            )
             Text(
                 text = message,
                 color = AppColors.error,
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center,
             )
-            Button(onClick = onRetry, colors = brandButtonColors()) { Text("Retry") }
+            Button(onClick = onRetry, colors = brandButtonColors()) { Text(LocalStrings.current.retry) }
         }
     }
 }

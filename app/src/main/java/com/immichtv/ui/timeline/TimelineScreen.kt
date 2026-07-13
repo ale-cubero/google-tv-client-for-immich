@@ -51,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.focus.onFocusChanged
@@ -133,6 +134,9 @@ private fun TimelineContent(
     // fight the scrubber-entry redirect above by restoring its own remembered cell instead).
     val restoreCell = remember { FocusRequester() }
     var restoreKey by remember { mutableStateOf<String?>(null) }
+    // Pressing LEFT from a left-column cell jumps straight to the year scrubber (its current year),
+    // so the rail is one press away instead of arrowing across the whole row.
+    val yearRail = remember { FocusRequester() }
     val onEnterGrid: () -> Unit = {
         val info = gridState.layoutInfo
         val pivotY = info.viewportStartOffset +
@@ -232,6 +236,15 @@ private fun TimelineContent(
                                 bucketIndex == 0 && i == 0 -> Modifier.focusRequester(firstCell)
                                 else -> Modifier
                             }
+                                // A full-span header resets each bucket to column 0, so cell i sits in
+                                // column i % COLUMNS; the left column redirects LEFT to the scrubber.
+                                .then(
+                                    if (i % COLUMNS == 0) {
+                                        Modifier.focusProperties { left = yearRail }
+                                    } else {
+                                        Modifier
+                                    },
+                                )
                             ThumbnailCell(
                                 asset = asset,
                                 modifier = cellModifier,
@@ -251,6 +264,7 @@ private fun TimelineContent(
             currentYear = currentYear,
             onScrubToIndex = { flatIndex -> scope.launch { gridState.scrollToItem(flatIndex) } },
             onEnterGrid = onEnterGrid,
+            currentYearRequester = yearRail,
             modifier = Modifier.fillMaxHeight(),
         )
     }
@@ -310,6 +324,7 @@ private fun YearScrubber(
     currentYear: Int,
     onScrubToIndex: (Int) -> Unit,
     onEnterGrid: () -> Unit,
+    currentYearRequester: FocusRequester,
     modifier: Modifier = Modifier,
 ) {
     // First bucket (flat index) of each distinct year, newest first.
@@ -344,6 +359,8 @@ private fun YearScrubber(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 10.dp)
+                    // The current-year row is the LEFT-jump target from the grid's left column.
+                    .then(if (isCurrent) Modifier.focusRequester(currentYearRequester) else Modifier)
                     .background(
                         if (focused) MaterialTheme.colorScheme.primary else Color.Transparent,
                     )

@@ -35,6 +35,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.BringIntoViewSpec
+import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -50,6 +53,7 @@ import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Slideshow
@@ -58,6 +62,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -96,6 +101,7 @@ import com.immichtv.ui.common.brandButtonColors
 import com.immichtv.ui.i18n.Language
 import com.immichtv.ui.i18n.LocalStrings
 import com.immichtv.ui.theme.AppColors
+import com.immichtv.ui.theme.AppDimens
 import com.immichtv.ui.theme.ThemeMode
 import com.immichtv.domain.Album
 import com.immichtv.domain.Asset
@@ -222,7 +228,7 @@ private fun HomeContent(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 48.dp, end = 48.dp, bottom = 8.dp),
+                    .padding(start = AppDimens.overscanH, end = AppDimens.overscanH, bottom = 8.dp),
             ) {
                 Button(
                     onClick = onOpenTimeline,
@@ -315,16 +321,19 @@ private fun HomeContent(
 @Composable
 private fun SearchBar(onClick: () -> Unit, modifier: Modifier = Modifier) {
     var focused by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(AppDimens.radiusLg)
     val border = if (focused) MaterialTheme.colorScheme.primary else AppColors.chromeBorder
     val fg = if (focused) MaterialTheme.colorScheme.onBackground else AppColors.onChrome
+    // Filled on focus so it reads as an actionable button (it opens the search screen).
+    val bg = if (focused) AppColors.menuFocus else AppColors.chromeBg
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = modifier
             .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = onClick)
-            .background(AppColors.chromeBg, RoundedCornerShape(22.dp))
-            .border(if (focused) 2.dp else 1.dp, border, RoundedCornerShape(22.dp))
+            .background(bg, shape)
+            .border(if (focused) 2.dp else 1.dp, border, shape)
             .padding(horizontal = 20.dp, vertical = 11.dp),
     ) {
         Icon(
@@ -337,6 +346,13 @@ private fun SearchBar(onClick: () -> Unit, modifier: Modifier = Modifier) {
             text = LocalStrings.current.searchHint,
             color = fg,
             style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f),
+        )
+        Icon(
+            imageVector = Icons.Filled.ChevronRight,
+            contentDescription = null,
+            tint = fg,
+            modifier = Modifier.size(20.dp),
         )
     }
 }
@@ -344,16 +360,18 @@ private fun SearchBar(onClick: () -> Unit, modifier: Modifier = Modifier) {
 @Composable
 private fun SettingsButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
     var focused by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(AppDimens.radiusLg)
     val border = if (focused) MaterialTheme.colorScheme.primary else AppColors.chromeBorder
     val fg = if (focused) MaterialTheme.colorScheme.onBackground else AppColors.onChrome
+    val bg = if (focused) AppColors.menuFocus else AppColors.chromeBg
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier
             .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = onClick)
-            .background(AppColors.chromeBg, RoundedCornerShape(20.dp))
-            .border(if (focused) 2.dp else 1.dp, border, RoundedCornerShape(20.dp))
+            .background(bg, shape)
+            .border(if (focused) 2.dp else 1.dp, border, shape)
             .padding(horizontal = 18.dp, vertical = 8.dp),
     ) {
         Icon(
@@ -810,26 +828,36 @@ private fun AboutRow(label: String, value: String) {
     }
 }
 
-@OptIn(ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
 @Composable
 private fun Rail(
     title: String,
     content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit,
 ) {
-    Column(modifier = Modifier.padding(vertical = 10.dp)) {
+    // Keep the focused tile ~18% from the left edge instead of riding the right edge before it
+    // scrolls (same pivot feel as the timeline grid).
+    val pivotSpec = remember {
+        object : BringIntoViewSpec {
+            override fun calculateScrollDistance(offset: Float, size: Float, containerSize: Float) =
+                offset - containerSize * 0.18f
+        }
+    }
+    Column(modifier = Modifier.padding(vertical = AppDimens.railSpacing / 2)) {
         Text(
             text = title,
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(start = 48.dp, bottom = 10.dp),
+            modifier = Modifier.padding(start = AppDimens.overscanH, bottom = 12.dp),
         )
-        LazyRow(
-            // Restore the last-focused tile when returning to this rail.
-            modifier = Modifier.focusRestorer(),
-            contentPadding = PaddingValues(horizontal = 48.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            content = content,
-        )
+        CompositionLocalProvider(LocalBringIntoViewSpec provides pivotSpec) {
+            LazyRow(
+                // Restore the last-focused tile when returning to this rail.
+                modifier = Modifier.focusRestorer(),
+                contentPadding = PaddingValues(horizontal = AppDimens.overscanH),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                content = content,
+            )
+        }
     }
 }
 

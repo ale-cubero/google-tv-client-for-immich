@@ -19,24 +19,24 @@ package com.immichtv.ui.common
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Border
 import androidx.tv.material3.CardBorder
 import androidx.tv.material3.CardDefaults
 import androidx.tv.material3.CardScale
+import androidx.tv.material3.MaterialTheme
+import com.immichtv.ui.theme.AppDimens
 
 /**
- * Shared, highly-visible focus style for all browsable cards: a thick white ring (inherits the
- * card's rounded shape) plus a clear scale bump. The default tv-material focus (faint grey border,
- * small scale) is hard to see against photo thumbnails.
+ * One consistent focus signal for every browsable card: a brand-primary ring (inherits the card's
+ * rounded shape) plus a subtle scale bump. Primary is bright enough to read against thumbnails while
+ * matching the rest of the UI (the previous pure-white ring was off-brand).
  */
 object CardFocus {
     @Composable
     fun border(): CardBorder = CardDefaults.border(
-        focusedBorder = Border(BorderStroke(4.dp, Color.White)),
+        focusedBorder = Border(BorderStroke(AppDimens.cardFocusBorder, MaterialTheme.colorScheme.primary)),
     )
 
     @Composable
-    fun scale(): CardScale = CardDefaults.scale(focusedScale = 1.15f)
+    fun scale(): CardScale = CardDefaults.scale(focusedScale = AppDimens.cardFocusScale)
 }

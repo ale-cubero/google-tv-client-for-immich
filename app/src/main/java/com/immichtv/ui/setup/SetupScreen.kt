@@ -71,6 +71,7 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.immichtv.ui.common.brandButtonColors
 import com.immichtv.ui.theme.AppColors
+import com.immichtv.ui.theme.AppDimens
 
 @Composable
 fun SetupScreen(
@@ -82,12 +83,12 @@ fun SetupScreen(
     val urlFocus = remember { FocusRequester() }
     var showKey by remember { mutableStateOf(false) }
 
-    // Overscan-safe padding (~5%).
+    // Overscan-safe padding, shared with the rest of the app (~5% at TV density).
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 96.dp, vertical = 54.dp),
+            .padding(horizontal = AppDimens.overscanH, vertical = AppDimens.overscanV),
         contentAlignment = Alignment.Center,
     ) {
         Column(

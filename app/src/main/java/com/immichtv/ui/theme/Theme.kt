@@ -23,12 +23,49 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.tv.material3.MaterialTheme
+import androidx.tv.material3.Typography
 import androidx.tv.material3.darkColorScheme
 import androidx.tv.material3.lightColorScheme
 
 /** User-selectable UI theme, persisted in settings. */
 enum class ThemeMode { DARK, LIGHT }
+
+/**
+ * Shared layout constants for a consistent 10-foot feel. Overscan is ~5% of a 1080p TV frame
+ * (≈48/27 dp at typical TV density); a single set of corner radii and one focus treatment keep the
+ * UI cohesive across screens.
+ */
+object AppDimens {
+    val overscanH = 48.dp
+    val overscanV = 27.dp
+    val radiusSm = 8.dp
+    val radiusMd = 12.dp
+    val radiusLg = 20.dp
+    const val cardFocusScale = 1.10f
+    val cardFocusBorder = 4.dp // thick enough to read against any thumbnail, in the brand color
+    val railSpacing = 22.dp // vertical gap between Home rails, room for the focused-tile scale-up
+}
+
+// Text sizes bumped from Material's phone defaults for legibility at TV viewing distance. Only
+// fontSize is overridden; the default line heights already have the headroom.
+private val ImmichTypography = Typography().let { d ->
+    d.copy(
+        headlineMedium = d.headlineMedium.copy(fontSize = 32.sp),
+        headlineSmall = d.headlineSmall.copy(fontSize = 26.sp),
+        titleLarge = d.titleLarge.copy(fontSize = 24.sp),
+        titleMedium = d.titleMedium.copy(fontSize = 20.sp),
+        titleSmall = d.titleSmall.copy(fontSize = 18.sp),
+        bodyLarge = d.bodyLarge.copy(fontSize = 18.sp),
+        bodyMedium = d.bodyMedium.copy(fontSize = 16.sp),
+        bodySmall = d.bodySmall.copy(fontSize = 14.sp),
+        labelLarge = d.labelLarge.copy(fontSize = 16.sp),
+        labelMedium = d.labelMedium.copy(fontSize = 14.sp),
+        labelSmall = d.labelSmall.copy(fontSize = 12.sp),
+    )
+}
 
 // Palette matches Immich's own brand colors (web `app.css`): indigo primary in light,
 // light-blue primary in dark, near-black surfaces (#0A0A0A bg, #212121 cards) in dark.
@@ -81,7 +118,7 @@ data class AppColorScheme(
 val DarkAppColors = AppColorScheme(
     placeholder = Color(0xFF212121),   // Immich dark-gray card color
     textSecondary = Color(0xFF9CA3AF),
-    textTertiary = Color(0xFF6B7280),
+    textTertiary = Color(0xFF8B95A6),  // lightened for readable small labels on near-black
     panel = Color(0xFF212121),         // menus/dialogs = Immich card gray
     panelTranslucent = Color(0xF00A0A0A),
     rail = Color(0xFF141414),
@@ -98,7 +135,7 @@ val DarkAppColors = AppColorScheme(
 val LightAppColors = AppColorScheme(
     placeholder = Color(0xFFE3E6F0),
     textSecondary = Color(0xFF5B6472),
-    textTertiary = Color(0xFF8A93A3),
+    textTertiary = Color(0xFF6B7480),  // darkened for readable small labels on white
     panel = Color(0xFFFFFFFF),
     panelTranslucent = Color(0xF00A0A0A), // viewer stays dark
     rail = Color(0xFFEEF0F7),
@@ -139,6 +176,7 @@ fun ImmichTvTheme(mode: ThemeMode = ThemeMode.DARK, content: @Composable () -> U
     CompositionLocalProvider(LocalAppColors provides if (dark) DarkAppColors else LightAppColors) {
         MaterialTheme(
             colorScheme = if (dark) ImmichDarkColors else ImmichLightColors,
+            typography = ImmichTypography,
             content = content,
         )
     }
