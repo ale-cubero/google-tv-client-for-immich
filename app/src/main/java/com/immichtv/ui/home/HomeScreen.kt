@@ -102,6 +102,7 @@ import com.immichtv.ui.i18n.Language
 import com.immichtv.ui.i18n.LocalStrings
 import com.immichtv.ui.theme.AppColors
 import com.immichtv.ui.theme.AppDimens
+import com.immichtv.ui.theme.TextSize
 import com.immichtv.ui.theme.ThemeMode
 import com.immichtv.domain.Album
 import com.immichtv.domain.Asset
@@ -127,6 +128,7 @@ fun HomeScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val slideshowPrefs by viewModel.slideshowPrefs.collectAsStateWithLifecycle()
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+    val textSize by viewModel.textSize.collectAsStateWithLifecycle()
     val language by viewModel.language.collectAsStateWithLifecycle()
     var showMenu by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
@@ -181,6 +183,8 @@ fun HomeScreen(
             AppearanceDialog(
                 mode = themeMode,
                 onSelect = viewModel::setThemeMode,
+                textSize = textSize,
+                onSelectTextSize = viewModel::setTextSize,
                 onDismiss = { showAppearance = false },
             )
         }
@@ -543,6 +547,8 @@ private fun SlideshowSettingsDialog(
 private fun AppearanceDialog(
     mode: ThemeMode,
     onSelect: (ThemeMode) -> Unit,
+    textSize: TextSize,
+    onSelectTextSize: (TextSize) -> Unit,
     onDismiss: () -> Unit,
 ) {
     BackHandler(enabled = true, onBack = onDismiss)
@@ -587,6 +593,28 @@ private fun AppearanceDialog(
                     icon = Icons.Filled.LightMode,
                     selected = mode == ThemeMode.LIGHT,
                     onClick = { onSelect(ThemeMode.LIGHT) },
+                )
+            }
+            Text(
+                text = str.textSizeLabel,
+                color = AppColors.textSecondary,
+                style = MaterialTheme.typography.labelLarge,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OptionChip(
+                    label = str.textSizeSmall,
+                    selected = textSize == TextSize.SMALL,
+                    onClick = { onSelectTextSize(TextSize.SMALL) },
+                )
+                OptionChip(
+                    label = str.textSizeNormal,
+                    selected = textSize == TextSize.NORMAL,
+                    onClick = { onSelectTextSize(TextSize.NORMAL) },
+                )
+                OptionChip(
+                    label = str.textSizeLarge,
+                    selected = textSize == TextSize.LARGE,
+                    onClick = { onSelectTextSize(TextSize.LARGE) },
                 )
             }
             Button(onClick = onDismiss, colors = brandButtonColors()) { Text(str.actionDone) }

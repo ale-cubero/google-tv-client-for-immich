@@ -27,6 +27,7 @@ import com.immichtv.data.crypto.KeystoreCrypto
 import com.immichtv.domain.ServerSettings
 import com.immichtv.domain.SlideshowPrefs
 import com.immichtv.ui.i18n.Language
+import com.immichtv.ui.theme.TextSize
 import com.immichtv.ui.theme.ThemeMode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -62,6 +63,7 @@ class SettingsRepository @Inject constructor(
     private val keySlideshowInterval = intPreferencesKey("slideshow_interval_s")
     private val keySlideshowShuffle = booleanPreferencesKey("slideshow_shuffle")
     private val keyThemeMode = stringPreferencesKey("theme_mode")
+    private val keyTextSize = stringPreferencesKey("text_size")
     private val keyLanguage = stringPreferencesKey("language")
 
     /** Latest settings, readable synchronously from an interceptor. */
@@ -117,6 +119,18 @@ class SettingsRepository @Inject constructor(
 
     suspend fun saveThemeMode(mode: ThemeMode) {
         dataStore.edit { it[keyThemeMode] = mode.name }
+    }
+
+    val textSize: Flow<TextSize> = dataStore.data.map {
+        when (it[keyTextSize]) {
+            TextSize.SMALL.name -> TextSize.SMALL
+            TextSize.LARGE.name -> TextSize.LARGE
+            else -> TextSize.NORMAL // default & any legacy/unknown value
+        }
+    }
+
+    suspend fun saveTextSize(size: TextSize) {
+        dataStore.edit { it[keyTextSize] = size.name }
     }
 
     suspend fun saveLanguage(language: Language) {

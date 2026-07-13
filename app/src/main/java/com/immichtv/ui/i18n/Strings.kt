@@ -55,6 +55,10 @@ interface Strings {
     val themeLabel: String
     val themeDark: String
     val themeLight: String
+    val textSizeLabel: String
+    val textSizeSmall: String
+    val textSizeNormal: String
+    val textSizeLarge: String
     val actionDone: String
 
     // Language
@@ -178,6 +182,10 @@ object En : Strings {
     override val themeLabel = "Theme"
     override val themeDark = "Dark"
     override val themeLight = "Light"
+    override val textSizeLabel = "Text size"
+    override val textSizeSmall = "Small"
+    override val textSizeNormal = "Normal"
+    override val textSizeLarge = "Large"
     override val actionDone = "Done"
 
     override val languageTitle = "Language"
@@ -305,6 +313,10 @@ object Es : Strings {
     override val themeLabel = "Tema"
     override val themeDark = "Oscuro"
     override val themeLight = "Claro"
+    override val textSizeLabel = "Tamaño del texto"
+    override val textSizeSmall = "Pequeño"
+    override val textSizeNormal = "Normal"
+    override val textSizeLarge = "Grande"
     override val actionDone = "Listo"
 
     override val languageTitle = "Idioma"
@@ -433,6 +445,10 @@ object Pt : Strings {
     override val themeLabel = "Tema"
     override val themeDark = "Escuro"
     override val themeLight = "Claro"
+    override val textSizeLabel = "Tamanho do texto"
+    override val textSizeSmall = "Pequeno"
+    override val textSizeNormal = "Normal"
+    override val textSizeLarge = "Grande"
     override val actionDone = "Concluído"
 
     override val languageTitle = "Idioma"
@@ -561,6 +577,10 @@ object It : Strings {
     override val themeLabel = "Tema"
     override val themeDark = "Scuro"
     override val themeLight = "Chiaro"
+    override val textSizeLabel = "Dimensione testo"
+    override val textSizeSmall = "Piccolo"
+    override val textSizeNormal = "Normale"
+    override val textSizeLarge = "Grande"
     override val actionDone = "Fatto"
 
     override val languageTitle = "Lingua"

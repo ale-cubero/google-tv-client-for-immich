@@ -87,6 +87,13 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch { settings.saveThemeMode(mode) }
     }
 
+    val textSize: StateFlow<com.immichtv.ui.theme.TextSize> =
+        settings.textSize.stateIn(viewModelScope, SharingStarted.Eagerly, com.immichtv.ui.theme.TextSize.NORMAL)
+
+    fun setTextSize(size: com.immichtv.ui.theme.TextSize) {
+        viewModelScope.launch { settings.saveTextSize(size) }
+    }
+
     val language: StateFlow<com.immichtv.ui.i18n.Language> =
         settings.language.stateIn(viewModelScope, SharingStarted.Eagerly, com.immichtv.ui.i18n.Language.ENGLISH)
 

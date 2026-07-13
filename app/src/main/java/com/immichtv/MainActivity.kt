@@ -46,6 +46,7 @@ import com.immichtv.ui.i18n.stringsFor
 import com.immichtv.ui.search.SearchScreen
 import com.immichtv.ui.setup.SetupScreen
 import com.immichtv.ui.theme.ImmichTvTheme
+import com.immichtv.ui.theme.TextSize
 import com.immichtv.ui.theme.ThemeMode
 import com.immichtv.ui.timeline.TimelineScreen
 import com.immichtv.ui.viewer.ViewerScreen
@@ -90,6 +91,8 @@ class AppViewModel @Inject constructor(
     val startConfigured: Boolean = settings.snapshot.isConfigured
     val themeMode: StateFlow<ThemeMode> =
         settings.themeMode.stateIn(viewModelScope, SharingStarted.Eagerly, ThemeMode.DARK)
+    val textSize: StateFlow<TextSize> =
+        settings.textSize.stateIn(viewModelScope, SharingStarted.Eagerly, TextSize.NORMAL)
     val language: StateFlow<Language> =
         settings.language.stateIn(viewModelScope, SharingStarted.Eagerly, Language.ENGLISH)
 }
@@ -97,8 +100,9 @@ class AppViewModel @Inject constructor(
 @Composable
 private fun AppRoot(appViewModel: AppViewModel = hiltViewModel()) {
     val themeMode by appViewModel.themeMode.collectAsStateWithLifecycle()
+    val textSize by appViewModel.textSize.collectAsStateWithLifecycle()
     val language by appViewModel.language.collectAsStateWithLifecycle()
-    ImmichTvTheme(mode = themeMode) {
+    ImmichTvTheme(mode = themeMode, textSize = textSize) {
         // One string catalog for the whole tree; changing the language re-provides it live.
         CompositionLocalProvider(LocalStrings provides stringsFor(language)) {
             AppContent(appViewModel)

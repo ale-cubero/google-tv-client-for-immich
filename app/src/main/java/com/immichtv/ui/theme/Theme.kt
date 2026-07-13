@@ -34,6 +34,15 @@ import androidx.tv.material3.lightColorScheme
 enum class ThemeMode { DARK, LIGHT }
 
 /**
+ * User-selectable text size, persisted in settings. [scale] multiplies the base type sizes;
+ * [LARGE] is 1.0 (the base scale), [NORMAL] is the default, [SMALL] is smaller still.
+ */
+enum class TextSize(val scale: Float) { SMALL(0.78f), NORMAL(0.88f), LARGE(1.0f) }
+
+/** Active text size, provided by [ImmichTvTheme] so nested themes (e.g. the viewer) inherit it. */
+val LocalTextSize = staticCompositionLocalOf { TextSize.NORMAL }
+
+/**
  * Shared layout constants for a consistent 10-foot feel. Overscan is ~5% of a 1080p TV frame
  * (≈48/27 dp at typical TV density); a single set of corner radii and one focus treatment keep the
  * UI cohesive across screens.
@@ -49,23 +58,26 @@ object AppDimens {
     val railSpacing = 22.dp // vertical gap between Home rails, room for the focused-tile scale-up
 }
 
-// Text sizes bumped from Material's phone defaults for legibility at TV viewing distance. Only
-// fontSize is overridden; the default line heights already have the headroom.
-private val ImmichTypography = Typography().let { d ->
+// Base type sizes (the LARGE tier) — bumped from Material's phone defaults for legibility at TV
+// distance. [scale] shrinks them for the Normal/Small tiers. Only fontSize is scaled; the default
+// line heights keep enough headroom. Cached per scale so recomposition doesn't rebuild it.
+private fun immichTypography(scale: Float): Typography = Typography().let { d ->
     d.copy(
-        headlineMedium = d.headlineMedium.copy(fontSize = 32.sp),
-        headlineSmall = d.headlineSmall.copy(fontSize = 26.sp),
-        titleLarge = d.titleLarge.copy(fontSize = 24.sp),
-        titleMedium = d.titleMedium.copy(fontSize = 20.sp),
-        titleSmall = d.titleSmall.copy(fontSize = 18.sp),
-        bodyLarge = d.bodyLarge.copy(fontSize = 18.sp),
-        bodyMedium = d.bodyMedium.copy(fontSize = 16.sp),
-        bodySmall = d.bodySmall.copy(fontSize = 14.sp),
-        labelLarge = d.labelLarge.copy(fontSize = 16.sp),
-        labelMedium = d.labelMedium.copy(fontSize = 14.sp),
-        labelSmall = d.labelSmall.copy(fontSize = 12.sp),
+        headlineMedium = d.headlineMedium.copy(fontSize = (32f * scale).sp),
+        headlineSmall = d.headlineSmall.copy(fontSize = (26f * scale).sp),
+        titleLarge = d.titleLarge.copy(fontSize = (24f * scale).sp),
+        titleMedium = d.titleMedium.copy(fontSize = (20f * scale).sp),
+        titleSmall = d.titleSmall.copy(fontSize = (18f * scale).sp),
+        bodyLarge = d.bodyLarge.copy(fontSize = (18f * scale).sp),
+        bodyMedium = d.bodyMedium.copy(fontSize = (16f * scale).sp),
+        bodySmall = d.bodySmall.copy(fontSize = (14f * scale).sp),
+        labelLarge = d.labelLarge.copy(fontSize = (16f * scale).sp),
+        labelMedium = d.labelMedium.copy(fontSize = (14f * scale).sp),
+        labelSmall = d.labelSmall.copy(fontSize = (12f * scale).sp),
     )
 }
+
+private val typographyByScale = TextSize.entries.associateWith { immichTypography(it.scale) }
 
 // Palette matches Immich's own brand colors (web `app.css`): indigo primary in light,
 // light-blue primary in dark, near-black surfaces (#0A0A0A bg, #212121 cards) in dark.
@@ -169,14 +181,25 @@ object AppColors {
     val menuFocus: Color @Composable @ReadOnlyComposable get() = LocalAppColors.current.menuFocus
 }
 
-/** App-wide TV Material 3 theme, honoring the user's light/dark choice. */
+/**
+ * App-wide TV Material 3 theme, honoring the user's light/dark and text-size choices. [textSize]
+ * defaults to the value already in scope ([LocalTextSize]), so nested calls — e.g. the viewer, which
+ * forces dark mode — keep the user's chosen size without threading it through.
+ */
 @Composable
-fun ImmichTvTheme(mode: ThemeMode = ThemeMode.DARK, content: @Composable () -> Unit) {
+fun ImmichTvTheme(
+    mode: ThemeMode = ThemeMode.DARK,
+    textSize: TextSize = LocalTextSize.current,
+    content: @Composable () -> Unit,
+) {
     val dark = mode == ThemeMode.DARK
-    CompositionLocalProvider(LocalAppColors provides if (dark) DarkAppColors else LightAppColors) {
+    CompositionLocalProvider(
+        LocalAppColors provides if (dark) DarkAppColors else LightAppColors,
+        LocalTextSize provides textSize,
+    ) {
         MaterialTheme(
             colorScheme = if (dark) ImmichDarkColors else ImmichLightColors,
-            typography = ImmichTypography,
+            typography = typographyByScale.getValue(textSize),
             content = content,
         )
     }
