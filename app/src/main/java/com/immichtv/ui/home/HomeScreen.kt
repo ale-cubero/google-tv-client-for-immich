@@ -104,6 +104,7 @@ import com.immichtv.ui.theme.AppColors
 import com.immichtv.ui.theme.AppDimens
 import com.immichtv.ui.theme.TextSize
 import com.immichtv.ui.theme.ThemeMode
+import kotlinx.coroutines.delay
 import com.immichtv.domain.Album
 import com.immichtv.domain.Asset
 import com.immichtv.domain.Memory
@@ -553,7 +554,28 @@ private fun AppearanceDialog(
 ) {
     BackHandler(enabled = true, onBack = onDismiss)
     val str = LocalStrings.current
-    val firstFocus = remember { FocusRequester() }
+    // Picking a size/theme re-provides a static CompositionLocal (typography/colors), which
+    // recomposes the WHOLE tree and can bounce D-pad focus out of the dialog onto the content behind
+    // the scrim — leaving the user unable to pick again or press Done. After each change, pull focus
+    // back onto the just-selected chip, retrying because the full-tree relayout can outlast a frame
+    // (and only while the dialog has actually lost focus, so we never fight the user's navigation).
+    val themeFocus = remember { FocusRequester() }
+    val textFocus = remember { FocusRequester() }
+    var dialogHasFocus by remember { mutableStateOf(true) }
+    var lastMode by remember { mutableStateOf(mode) }
+    var lastText by remember { mutableStateOf(textSize) }
+    suspend fun restoreFocus(target: FocusRequester) {
+        repeat(20) {
+            delay(30)
+            if (!dialogHasFocus) runCatching { target.requestFocus() }
+        }
+    }
+    LaunchedEffect(mode) {
+        if (mode != lastMode) { lastMode = mode; restoreFocus(themeFocus) }
+    }
+    LaunchedEffect(textSize) {
+        if (textSize != lastText) { lastText = textSize; restoreFocus(textFocus) }
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -567,6 +589,7 @@ private fun AppearanceDialog(
                 .widthIn(max = 520.dp)
                 .background(AppColors.panel, RoundedCornerShape(16.dp))
                 .border(1.dp, AppColors.outline, RoundedCornerShape(16.dp))
+                .onFocusChanged { dialogHasFocus = it.hasFocus }
                 .padding(horizontal = 36.dp, vertical = 30.dp),
         ) {
             Text(
@@ -585,13 +608,14 @@ private fun AppearanceDialog(
                     label = str.themeDark,
                     icon = Icons.Filled.DarkMode,
                     selected = mode == ThemeMode.DARK,
-                    modifier = Modifier.focusRequester(firstFocus),
+                    modifier = if (mode == ThemeMode.DARK) Modifier.focusRequester(themeFocus) else Modifier,
                     onClick = { onSelect(ThemeMode.DARK) },
                 )
                 IconOptionChip(
                     label = str.themeLight,
                     icon = Icons.Filled.LightMode,
                     selected = mode == ThemeMode.LIGHT,
+                    modifier = if (mode == ThemeMode.LIGHT) Modifier.focusRequester(themeFocus) else Modifier,
                     onClick = { onSelect(ThemeMode.LIGHT) },
                 )
             }
@@ -604,23 +628,27 @@ private fun AppearanceDialog(
                 OptionChip(
                     label = str.textSizeSmall,
                     selected = textSize == TextSize.SMALL,
+                    modifier = if (textSize == TextSize.SMALL) Modifier.focusRequester(textFocus) else Modifier,
                     onClick = { onSelectTextSize(TextSize.SMALL) },
                 )
                 OptionChip(
                     label = str.textSizeNormal,
                     selected = textSize == TextSize.NORMAL,
+                    modifier = if (textSize == TextSize.NORMAL) Modifier.focusRequester(textFocus) else Modifier,
                     onClick = { onSelectTextSize(TextSize.NORMAL) },
                 )
                 OptionChip(
                     label = str.textSizeLarge,
                     selected = textSize == TextSize.LARGE,
+                    modifier = if (textSize == TextSize.LARGE) Modifier.focusRequester(textFocus) else Modifier,
                     onClick = { onSelectTextSize(TextSize.LARGE) },
                 )
             }
             Button(onClick = onDismiss, colors = brandButtonColors()) { Text(str.actionDone) }
         }
     }
-    LaunchedEffect(Unit) { runCatching { firstFocus.requestFocus() } }
+    // Open focused on the currently-selected theme chip.
+    LaunchedEffect(Unit) { runCatching { themeFocus.requestFocus() } }
 }
 
 @Composable
