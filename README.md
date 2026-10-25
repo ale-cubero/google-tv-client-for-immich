@@ -1,104 +1,131 @@
 # TV client for Immich
 
-A native **Android TV / Google TV** client for a self-hosted [Immich](https://immich.app) photo & video server. Built for the living-room: fast D‑pad navigation, hardware‑decoded video, and a **strictly read‑only** connection to your library.
+A native **Google TV / Android TV** app for browsing your self-hosted [Immich](https://immich.app) photo & video library from the couch. Fast remote-control navigation, hardware-decoded video with HDR, and a **strictly read-only** connection: the app can look at your library, never change it.
 
-> Personal project, sideloaded to a Google TV Streamer — no Play Store. Not affiliated with the Immich project.
+> Unofficial, sideloaded app (not on the Play Store). Not affiliated with the Immich project.
+
+![Home screen](docs/screenshots/home.png)
 
 ## Features
 
-- 🖼️ **Browse your whole library** — a Home screen of memories and rails, a fast month‑by‑month timeline, and album, people & places views.
-- 🔍 **Smart search** — find photos by what's in them, using Immich's semantic (CLIP) search and object recognition — search "beach", "birthday cake", or "dog", not filenames.
-- ⚡ **Smooth on huge libraries** — buttery scrolling of tens of thousands of photos, with a year scrubber to jump across the years instantly.
-- ▶️ **Photo & video viewer** — full‑screen playback with hardware decoding, **HDR** support, and Motion Photos (Samsung/Apple/Google live photos).
-- 🎞️ **Slideshow & screensaver** — turn any view into a slideshow, or let the app be your TV's screensaver.
-- 🎨 **Light & dark themes** — styled after Immich's own colors.
-- 🌐 **Multilingual** — English, Spanish, Portuguese, and Italian, switchable in Settings.
-- 🔐 **Read‑only & private** — the app can never modify your server; your API key is encrypted on‑device.
-- 🏠 **Self‑hosting friendly** — an optional insecure mode for servers with self‑signed certificates or no valid certificate.
-- 🕹️ **Made for the remote** — every screen is fully operable with just **D‑pad + OK + Back**.
+- **Browse your whole library** — an "On this day" memories row, Recent, Albums, People, Places and Videos, plus a month-by-month timeline of everything.
+- **Smart search** — search by what's *in* the photo ("beach", "birthday cake", "dog"), using your Immich server's smart search.
+- **Smooth on huge libraries** — tens of thousands of photos scroll smoothly, with a year rail to jump across years instantly.
+- **Photo & video viewer** — full-screen, hardware-decoded playback with **HDR**, and Motion Photos (Samsung / Apple / Google live photos).
+- **Slideshow & screensaver** — start a slideshow from any photo, or use the app as your TV's screensaver.
+- **Light & dark themes**, three text sizes, and **English, Spanish, Portuguese and Italian**.
+- **Read-only & private** — cannot modify your server; your API key is encrypted on the device.
+- **Made for the remote** — every screen works with just **D-pad, OK and Back**.
+
+## Install on your Google TV
+
+You'll need:
+
+- A **Google TV or Android TV** device running Android 8.0 or newer (developed on a Google TV Streamer 4K).
+- An **Immich server** the TV can reach — tested with Immich **v3.x**.
+- A **computer on the same network** with Android's free [platform-tools](https://developer.android.com/tools/releases/platform-tools) installed (this provides the `adb` command).
+- The app's **APK file**. Prebuilt downloads aren't published yet, so for now build one from source — see [Building from source](#building-from-source).
+
+### 1. Turn on developer mode on the TV
+
+1. On the TV, open **Settings → System → About**.
+2. Scroll to **Android TV OS build** and press **OK** on it 7 times, until it says you're a developer.
+3. Go back to **Settings → System → Developer options** and turn on **Wireless debugging** (on older devices, **Network debugging** / **ADB debugging**).
+
+### 2. Install the app from your computer
+
+On the **Wireless debugging** screen, choose **Pair device with pairing code**. The TV shows an IP address, a port and a 6-digit code. On your computer, run:
+
+```bash
+adb pair <tv-ip>:<pairing-port>        # enter the 6-digit code when asked
+adb connect <tv-ip>:<port>             # the IP and port shown under "Wireless debugging"
+adb install -r app-release.apk
+```
+
+If the TV asks **"Allow debugging?"**, choose **Always allow**. The app then appears in your TV's apps list as **TV client for Immich**.
+
+> To **update** later, run the same `adb install -r` with the new APK — your server settings are kept. To remove it, uninstall it from the TV's app settings like any other app.
+
+### 3. Create an API key in Immich
+
+In the Immich web app, open your **profile picture → Account Settings → API Keys → New API Key**.
+
+**Recommended:** give the key **read permissions only**. The app never writes, and a read-only key means the server will refuse writes too. The app needs read access to assets (including viewing thumbnails and videos), the timeline, albums, memories, people, search and server info. If a section later shows *"Couldn't load this section"*, the key is probably missing that area's read permission.
+
+### 4. Connect
+
+Open the app, then enter:
+
+- **Server URL** — the address you use for Immich in a browser, e.g. `https://photos.example.com`.
+- **API key** — the key from step 3.
+
+Choose **Connect**. You can change these later under **Settings → Change server**.
+
+> **Self-signed certificate or no HTTPS?** Turn on **Allow insecure connection** on the setup screen. Only do this on a network you trust, because the API key may then travel unencrypted.
+
+## Using the app
+
+| Where | Button | What it does |
+| --- | --- | --- |
+| Everywhere | D-pad / **OK** / **Back** | Move, open, go back |
+| Timeline | **←** from the left-most column | Jump to the year rail; **↑/↓** scrubs through years, **←** returns to the photos |
+| Viewer | **← / →** | Previous / next photo or video (opened from the timeline, it continues across months) |
+| Viewer (video) | **Hold ← / →** | Seek backward / forward |
+| Viewer | **OK** | Opens an action bar: **Show details** (date, place, camera, people), **Start slideshow**, **Play / Pause** (videos), **Play motion photo**, **Go to this day** |
+| Viewer | **↓** | Show the control hints again; scrolls the details panel when it's open |
+
+The **Settings** button on Home has: change server, refresh, appearance (theme & text size), language, slideshow options (interval, shuffle), log out, and about.
 
 ## Screenshots
 
-The app ships with **dark and light themes**, styled after Immich's own colors.
-
-**Home** — memories, recent, albums, people, places, and videos rails
+**Home**
 
 | Dark | Light |
 | --- | --- |
 | ![Home screen, dark](docs/screenshots/home.png) | ![Home screen, light](docs/screenshots/home-light.png) |
 
-**Timeline** — bucketed grid with a year scrubber on the right edge
+**Timeline** — month-by-month grid with the year rail on the right
 
 | Dark | Light |
 | --- | --- |
 | ![Timeline, dark](docs/screenshots/timeline.png) | ![Timeline, light](docs/screenshots/timeline-light.png) |
 
-**Viewer** — full‑screen photo with the metadata panel (OK → Show details). The viewer stays dark in both themes, as photos and videos look best on black.
+**Viewer** — with the details panel open (OK → Show details). The viewer stays dark in both themes, since photos and videos look best on black.
 
 ![Viewer with metadata panel](docs/screenshots/viewer-metadata.png)
 
 <sub>Screenshots taken against the public <a href="https://demo.immich.app">Immich demo library</a> — no personal data.</sub>
 
-## In detail
+## Troubleshooting
 
-- **Home** — an "On this day" memories row plus Recent, Albums, People, Places, and Videos rails, and a Settings menu (change server, refresh, slideshow settings, logout, about).
-- **Timeline** — the whole library in one smooth grid, driven by Immich's month "buckets": all month boundaries are known up front, each month's assets load lazily as you scroll, with prefetch and an LRU that evicts far‑off months. A year scrubber on the right edge jumps across a multi‑year library instantly (and always shows the year you're in).
-- **Search** — a search bar at the top of Home runs Immich's smart (CLIP) search: results match by meaning and recognized objects/scenes, not filenames. Pick any result to open it in the viewer.
-- **Albums, People & Places** — browse an album, a person, or a geographic place (city) in the same grid. Places uses Immich's location data ("Explore").
-- **Viewer** — full‑screen pager for photos and videos:
-  - Photos load a cached thumbnail instantly, then the high‑res preview.
-  - Videos play via Media3/ExoPlayer (server decides direct‑play vs transcode), with a transient scrub bar, buffering indicator, and duration badges on tiles. HDR (HLG/PQ) plays with true passthrough, and the metadata panel reports the dynamic range.
-  - **OK** on a photo opens a metadata panel (date, location, resolution, camera, lens, exposure, people); **←/→** page; **hold ←/→** seeks video. Opened from the timeline, paging continues seamlessly across month boundaries.
-  - **Motion Photos** (Samsung/Apple/Google live photos) show a **LIVE** badge and play their motion clip on demand with **OK**.
-  - First‑open control hints, and a transient position indicator while paging.
-- **Slideshow** — interval slideshow from the viewer (Play/Pause key), with configurable interval and shuffle.
-- **Screensaver** — a `DreamService` that crossfades through photos sampled from across the whole library.
-- **Insecure mode (opt‑in)** — trust self‑signed certificates / plain `http://` for self‑hosted servers without a valid certificate.
+- **Can't connect** — check the URL opens in a browser on the same network, includes `https://` (or turn on *Allow insecure connection* for `http://` / self-signed servers), and that the API key hasn't been deleted in Immich.
+- **A section says "Couldn't load this section"** — press **Retry**. If it keeps failing, the API key may lack read permission for that area, or the server version may be unsupported (the app targets Immich v3.x).
+- **"On this day" is missing** — that's normal on days your library has no memories.
+- **Smart search finds nothing** — smart search needs machine learning enabled on your Immich server.
+- **A video won't play** — the app plays whatever the server sends. If Immich's video transcoding is turned off, your device may not support that video's codec; turning transcoding on in Immich's video settings usually fixes it.
+- **Screensaver** — choose **TV client for Immich** under **Settings → System → Screensaver**, where your device lets you pick a third-party screensaver.
+- **HDR** — HDR output depends on your TV and its HDMI settings.
 
-Every screen is fully operable with **D‑pad + OK + Back**.
+## Read-only and private by design
 
-## Read‑only by design
+- **Can't modify your server.** No upload, delete, favorite or edit. A network-level guard (`ReadOnlyInterceptor`, unit-tested) blocks every request except reads (`GET`/`HEAD`) and two known read-only `POST`s (token validation, metadata search). Pair it with a read-only API key for defense in depth.
+- **Your API key is protected.** It's encrypted at rest with a non-exportable Android Keystore AES-GCM key, sent only to your server's own address (never across redirects), masked on screen, redacted from logs, and excluded from device backups.
 
-The app **cannot modify anything** on your server — no upload, delete, favorite, or edit. This is enforced at the network layer by a `ReadOnlyInterceptor` (unit‑tested) that blocks every non‑`GET`/`HEAD` request except two known read‑only `POST`s (token validation, metadata search). Recommended: pair it with a **read‑only Immich API key** for defense in depth.
+## For contributors
 
-## Security
+Pull requests are welcome. This is a personal project, so reviews are best-effort and there's no formal release process or issue triage.
 
-The API key is a bearer credential and is handled accordingly:
+### Building from source
 
-- **Encrypted at rest** with a non‑exportable Android Keystore AES‑GCM key.
-- **Host‑scoped** — the key is attached (via a network interceptor) only to the configured server's origin, never leaked across redirects.
-- **Backup disabled**, key field **masked**, auth header **redacted** from logs.
-
-## Tech stack
-
-Kotlin · Jetpack Compose (`androidx.tv:tv-material`) · Media3 ExoPlayer · Coil 3 · Retrofit + kotlinx.serialization · OkHttp (shared by Retrofit, Coil, and ExoPlayer) · Hilt · DataStore · MVVM + repository + Flows. `minSdk 26`, `targetSdk 35`.
-
-The API layer is **hand‑written** for the ~dozen endpoints in use (not generated from the OpenAPI spec). Tested against **Immich v3.x**, whose timeline API returns a compact columnar (structure‑of‑arrays) payload.
-
-## Build & install
-
-Requires the Android SDK and a JDK 17.
+Requires a **JDK 17** and the **Android SDK** (platform 35).
 
 ```bash
-# Debug
-./gradlew :app:assembleDebug
-
-# Signed release (needs keystore.properties + a keystore — see below)
-./gradlew :app:assembleRelease
+./gradlew :app:assembleDebug          # debug build
+./gradlew :app:testDebugUnitTest      # unit tests
+./gradlew :app:assembleRelease        # signed release → app/build/outputs/apk/release/app-release.apk
 ```
 
-Sideload to a Google TV device over the network:
-
-```bash
-adb connect <device-ip>:5555
-adb install -r app/build/outputs/apk/release/app-release.apk
-```
-
-Launch **TV client for Immich** and enter your **server URL** and **API key** on the setup screen.
-
-### Release signing
-
-Create a keystore and a non‑committed `keystore.properties` at the repo root:
+A release build needs a keystore and a non-committed `keystore.properties` at the repo root:
 
 ```properties
 storeFile=/absolute/path/to/immich-tv-release.jks
@@ -107,23 +134,36 @@ keyAlias=…
 keyPassword=…
 ```
 
-`keystore.properties`, `local.properties`, and `*.jks` are git‑ignored — never commit them.
+`keystore.properties`, `local.properties` and `*.jks` are git-ignored — never commit them. To install an update over an existing install, bump `versionCode` in `app/build.gradle.kts`.
+
+For development, the Android TV (1080p) emulator works well; video decoding and the screensaver are best checked on a real device.
+
+### Tech stack
+
+Kotlin · Jetpack Compose for TV (`androidx.tv:tv-material`) · Media3 ExoPlayer · Coil 3 · Retrofit + kotlinx.serialization · one shared OkHttp client (used by Retrofit, Coil and ExoPlayer, so all three carry auth) · Hilt · DataStore · MVVM + repository + Kotlin Flows. `minSdk 26`, `targetSdk 35`.
+
+### How it works
+
+- **Timeline** — built on Immich's month "buckets": the app loads the list of months up front (so scroll length and month headers are known immediately), then loads each month's photos lazily as it comes into view, prefetching ahead and evicting far-off months from a small LRU cache. Immich v3.x returns these as a compact columnar (structure-of-arrays) payload.
+- **Viewer** — shows the already-cached thumbnail instantly, then the high-res preview. Videos stream through ExoPlayer from Immich's playback endpoint; the server decides direct-play vs. transcode.
+- **API layer** — hand-written for the dozen or so endpoints in use, not generated from Immich's OpenAPI spec.
+
+### Ground rules for changes
+
+- **Read-only is a hard requirement.** Never add an endpoint or UI that writes to the server, and don't weaken `ReadOnlyInterceptor`. A new read-only `POST` needs to be added to its allowlist deliberately, with a justification.
+- **Remote-only.** Every screen must work with D-pad + OK + Back; no touch-only controls. Keep ~5% overscan-safe margins.
+- **Translations.** User-facing text lives in `ui/i18n/Strings.kt` — add every new string in all four languages.
+- **Never commit** a server URL, API key or keystore.
 
 ## Status
 
-Actively used on a Google TV Streamer 4K against a real ~14k‑asset library. All the core screens — Home, timeline, albums & people, smart search, the photo/video viewer, and slideshow — are built and working, along with light/dark themes and hardware‑decoded playback (HDR included).
-
-It's a personal project, so there's no formal release process, versioned support, or issue triage — expect the occasional rough edge, and note a few things are inherently device‑dependent:
-
-- **Screensaver** — can only be exercised on real hardware (Settings → System → Screensaver → *TV client for Immich*).
-- **Smart search** — requires machine learning enabled on your Immich server.
-- **HDR passthrough** — depends on your TV and display pipeline.
+In daily use on a Google TV Streamer 4K with a ~14k-item library. All core screens are built: Home, timeline, albums, people, places, smart search, the photo/video viewer, slideshow and screensaver. Expect the occasional rough edge.
 
 ## License
 
-[GNU AGPL‑3.0](LICENSE) © 2026 Alejandro Cubero — the same license as the [Immich](https://immich.app) project this client is built for.
+[GNU AGPL-3.0](LICENSE) © 2026 Alejandro Cubero — the same license as the [Immich](https://immich.app) project this client is built for.
 
-This is an **unofficial** third‑party client and is **not affiliated with, endorsed by, or sponsored by the Immich project**. "Immich" and the Immich logo are property of their respective owners; this project uses its own icon and only references the Immich name descriptively.
+This is an **unofficial** third-party client and is **not affiliated with, endorsed by, or sponsored by the Immich project**. "Immich" and the Immich logo are property of their respective owners; this project uses its own icon and only references the Immich name descriptively.
 
 ## Acknowledgements
 
