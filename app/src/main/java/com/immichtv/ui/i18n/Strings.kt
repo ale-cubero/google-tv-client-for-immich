@@ -36,6 +36,7 @@ interface Strings {
     val railPeople: String
     val railPlaces: String
     val railVideos: String
+    val railLoadFailed: String
     val homeLoading: String
     val homeEmptyTitle: String
     val emptyLibrarySubtitle: String
@@ -165,6 +166,7 @@ object En : Strings {
     override val railPeople = "People"
     override val railPlaces = "Places"
     override val railVideos = "Videos"
+    override val railLoadFailed = "Couldn't load this section"
     override val homeLoading = "Loading your library…"
     override val homeEmptyTitle = "Your library is empty"
     override val emptyLibrarySubtitle = "Photos and videos added in Immich will show up here."
@@ -296,6 +298,7 @@ object Es : Strings {
     override val railPeople = "Personas"
     override val railPlaces = "Lugares"
     override val railVideos = "Videos"
+    override val railLoadFailed = "No se pudo cargar esta sección"
     override val homeLoading = "Cargando tu biblioteca…"
     override val homeEmptyTitle = "Tu biblioteca está vacía"
     override val emptyLibrarySubtitle = "Las fotos y videos que añadas en Immich aparecerán aquí."
@@ -428,6 +431,7 @@ object Pt : Strings {
     override val railPeople = "Pessoas"
     override val railPlaces = "Lugares"
     override val railVideos = "Vídeos"
+    override val railLoadFailed = "Não foi possível carregar esta seção"
     override val homeLoading = "Carregando sua biblioteca…"
     override val homeEmptyTitle = "Sua biblioteca está vazia"
     override val emptyLibrarySubtitle = "As fotos e vídeos que você adicionar no Immich aparecerão aqui."
@@ -560,6 +564,7 @@ object It : Strings {
     override val railPeople = "Persone"
     override val railPlaces = "Luoghi"
     override val railVideos = "Video"
+    override val railLoadFailed = "Impossibile caricare questa sezione"
     override val homeLoading = "Caricamento della libreria…"
     override val homeEmptyTitle = "La tua libreria è vuota"
     override val emptyLibrarySubtitle = "Le foto e i video aggiunti in Immich appariranno qui."

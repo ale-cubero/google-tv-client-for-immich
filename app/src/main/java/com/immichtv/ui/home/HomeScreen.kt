@@ -44,6 +44,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Dns
 import androidx.compose.material.icons.filled.DarkMode
@@ -167,6 +168,7 @@ fun HomeScreen(
                 onOpenPlace = onOpenPlace,
                 loadPlaceThumbnail = viewModel::placeThumbnail,
                 onOpenSettings = { showMenu = true },
+                onRetry = viewModel::load,
             )
         }
 
@@ -221,6 +223,7 @@ private fun HomeContent(
     onOpenPlace: (String) -> Unit,
     loadPlaceThumbnail: suspend (String) -> String,
     onOpenSettings: () -> Unit,
+    onRetry: () -> Unit,
 ) {
     val isEmpty = data == HomeData()
     val timelineFocus = remember { FocusRequester() }
@@ -250,7 +253,7 @@ private fun HomeContent(
                 Spacer(modifier = Modifier.weight(1f))
                 SearchBar(onClick = onOpenSearch, modifier = Modifier.width(420.dp))
                 Spacer(modifier = Modifier.weight(1f))
-                SettingsButton(onClick = onOpenSettings)
+                ChromeButton(Icons.Filled.Settings, str.settings, onClick = onOpenSettings)
             }
         }
 
@@ -273,6 +276,8 @@ private fun HomeContent(
                     }
                 }
             }
+        } else if (HomeRail.MEMORIES in data.failed) item {
+            FailedRail(str.railOnThisDay, onRetry)
         }
 
         if (data.recent.isNotEmpty()) item {
@@ -284,6 +289,8 @@ private fun HomeContent(
                     }
                 }
             }
+        } else if (HomeRail.RECENT in data.failed) item {
+            FailedRail(str.railRecent, onRetry)
         }
 
         if (data.albums.isNotEmpty()) item {
@@ -292,6 +299,8 @@ private fun HomeContent(
                     AlbumTile(album) { onOpenAlbum(album.id, album.name) }
                 }
             }
+        } else if (HomeRail.ALBUMS in data.failed) item {
+            FailedRail(str.railAlbums, onRetry)
         }
 
         if (data.people.isNotEmpty()) item {
@@ -300,6 +309,8 @@ private fun HomeContent(
                     PersonTile(person) { onOpenPerson(person.id, person.name) }
                 }
             }
+        } else if (HomeRail.PEOPLE in data.failed) item {
+            FailedRail(str.railPeople, onRetry)
         }
 
         if (data.places.isNotEmpty()) item {
@@ -308,6 +319,8 @@ private fun HomeContent(
                     PlaceTile(place, loadThumbnail = loadPlaceThumbnail) { onOpenPlace(place.city) }
                 }
             }
+        } else if (HomeRail.PLACES in data.failed) item {
+            FailedRail(str.railPlaces, onRetry)
         }
 
         if (data.videos.isNotEmpty()) item {
@@ -319,6 +332,8 @@ private fun HomeContent(
                     }
                 }
             }
+        } else if (HomeRail.VIDEOS in data.failed) item {
+            FailedRail(str.railVideos, onRetry)
         }
     }
 
@@ -370,8 +385,14 @@ private fun SearchBar(onClick: () -> Unit, modifier: Modifier = Modifier) {
     }
 }
 
+/** Outlined header-style button (Settings, the failed-rail Retry): fills on focus. */
 @Composable
-private fun SettingsButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun ChromeButton(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     var focused by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(AppDimens.radiusLg)
     val border = if (focused) MaterialTheme.colorScheme.primary else AppColors.chromeBorder
@@ -389,13 +410,13 @@ private fun SettingsButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
             .padding(horizontal = 18.dp),
     ) {
         Icon(
-            imageVector = Icons.Filled.Settings,
+            imageVector = icon,
             contentDescription = null,
             tint = fg,
             modifier = Modifier.size(TopBarIcon),
         )
         Text(
-            text = LocalStrings.current.settings,
+            text = label,
             color = fg,
             style = MaterialTheme.typography.labelLarge,
         )
@@ -922,6 +943,43 @@ private fun Rail(
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                 content = content,
             )
+        }
+    }
+}
+
+/**
+ * A rail whose fetch failed: keeps the title so the section doesn't silently vanish, with a short
+ * note and a focusable Retry (reloads Home) so it's still D-pad operable.
+ */
+@Composable
+private fun FailedRail(title: String, onRetry: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .padding(vertical = AppDimens.railSpacing / 2)
+            .padding(horizontal = AppDimens.overscanH),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(bottom = 12.dp),
+        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Filled.CloudOff,
+                contentDescription = null,
+                tint = AppColors.error,
+                modifier = Modifier.size(TopBarIcon),
+            )
+            Text(
+                text = LocalStrings.current.railLoadFailed,
+                color = AppColors.textSecondary,
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            ChromeButton(Icons.Filled.Refresh, LocalStrings.current.retry, onClick = onRetry)
         }
     }
 }

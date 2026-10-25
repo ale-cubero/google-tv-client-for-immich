@@ -18,10 +18,12 @@
 package com.immichtv.ui.home
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import coil3.SingletonImageLoader
 import coil3.PlatformContext
+import com.immichtv.BuildConfig
 import com.immichtv.data.ImmichRepository
 import com.immichtv.data.ViewerQueue
 import com.immichtv.data.prefs.SettingsRepository
@@ -51,6 +53,8 @@ import javax.inject.Inject
 /** Home data older than this is re-fetched when the screen comes back to the foreground. */
 private const val STALE_AFTER_MS = 5 * 60_000L
 
+enum class HomeRail { MEMORIES, RECENT, ALBUMS, PEOPLE, PLACES, VIDEOS }
+
 data class HomeData(
     val memories: List<Memory> = emptyList(),
     val recent: List<Asset> = emptyList(),
@@ -58,6 +62,8 @@ data class HomeData(
     val people: List<Person> = emptyList(),
     val places: List<Place> = emptyList(),
     val videos: List<Asset> = emptyList(),
+    /** Rails whose fetch failed — shown as a "couldn't load" note instead of vanishing. */
+    val failed: Set<HomeRail> = emptySet(),
 )
 
 sealed interface HomeUiState {
@@ -143,11 +149,25 @@ class HomeViewModel @Inject constructor(
             val peopleR = people.await()
             val placesR = places.await()
             val videosR = videos.await()
-            val results = listOf(memoriesR, recentR, albumsR, peopleR, placesR, videosR)
+            val byRail = mapOf(
+                HomeRail.MEMORIES to memoriesR,
+                HomeRail.RECENT to recentR,
+                HomeRail.ALBUMS to albumsR,
+                HomeRail.PEOPLE to peopleR,
+                HomeRail.PLACES to placesR,
+                HomeRail.VIDEOS to videosR,
+            )
+            val results = byRail.values.toList()
+            if (BuildConfig.DEBUG) {
+                byRail.forEach { (rail, r) ->
+                    r.exceptionOrNull()?.let { Log.w("HomeViewModel", "Rail $rail failed to load", it) }
+                }
+            }
 
             // Every rail failing means the server is unreachable (offline / network) or the key is
-            // bad — show an actionable error with Retry. A partial failure just leaves that rail empty;
-            // a reachable-but-empty library shows an (empty) Home rather than a false error.
+            // bad — show an actionable error with Retry. A partial failure keeps that rail's title with
+            // a "couldn't load" note + Retry; a reachable-but-empty library shows an (empty) Home rather
+            // than a false error.
             val firstFailure = results.firstOrNull { it.isFailure }?.exceptionOrNull()
             loadedAt = System.currentTimeMillis()
             _state.value = if (results.all { it.isFailure } && firstFailure != null) {
@@ -161,6 +181,7 @@ class HomeViewModel @Inject constructor(
                         people = peopleR.getOrDefault(emptyList()),
                         places = placesR.getOrDefault(emptyList()),
                         videos = videosR.getOrDefault(emptyList()),
+                        failed = byRail.filterValues { it.isFailure }.keys,
                     ),
                 )
             }
