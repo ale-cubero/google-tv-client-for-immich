@@ -61,7 +61,9 @@ Open the app, then enter:
 
 Choose **Connect**. You can change these later under **Settings → Change server**.
 
-> **Self-signed certificate or no HTTPS?** Turn on **Allow insecure connection** on the setup screen. Only do this on a network you trust, because the API key may then travel unencrypted.
+> **Self-signed certificate?** When you connect, the app shows the server's certificate and its SHA-256 fingerprint. Choose **Trust and connect** only if the fingerprint matches your server. The app then accepts that exact certificate, from that server only.
+>
+> **No HTTPS at all?** Turn on **Allow unencrypted connection (http://)** on the setup screen. Only do this on a network you trust, because your API key and photos then travel unencrypted.
 
 ## Using the app
 
@@ -98,7 +100,8 @@ The **Settings** button on Home has: change server, refresh, appearance (theme &
 
 ## Troubleshooting
 
-- **Can't connect** — check the URL opens in a browser on the same network, includes `https://` (or turn on *Allow insecure connection* for `http://` / self-signed servers), and that the API key hasn't been deleted in Immich.
+- **Can't connect** — check the URL opens in a browser on the same network, includes `https://` (or turn on *Allow unencrypted connection* for an `http://` server), and that the API key hasn't been deleted in Immich.
+- **"Secure connection failed" after it worked before** — your server's certificate probably changed (for example, a renewed self-signed certificate). Open **Settings → Change server** and select **Connect** to review and trust the new one.
 - **A section says "Couldn't load this section"** — press **Retry**. If it keeps failing, the API key may lack read permission for that area, or the server version may be unsupported (the app targets Immich v3.x).
 - **"On this day" is missing** — that's normal on days your library has no memories.
 - **Smart search finds nothing** — smart search needs machine learning enabled on your Immich server.
@@ -109,6 +112,7 @@ The **Settings** button on Home has: change server, refresh, appearance (theme &
 ## Read-only and private by design
 
 - **Can't modify your server.** No upload, delete, favorite or edit. A network-level guard (`ReadOnlyInterceptor`, unit-tested) blocks every request except reads (`GET`/`HEAD`) and two known read-only `POST`s (token validation, metadata search). Pair it with a read-only API key for defense in depth.
+- **No blanket certificate bypass.** A self-signed certificate is trusted only after you approve its fingerprint, and only that exact certificate, from that server.
 - **Your API key is protected.** It's encrypted at rest with a non-exportable Android Keystore AES-GCM key, sent only to your server's own address (never across redirects), masked on screen, redacted from logs, and excluded from device backups.
 
 ## For contributors
@@ -158,6 +162,10 @@ Kotlin · Jetpack Compose for TV (`androidx.tv:tv-material`) · Media3 ExoPlayer
 ## Status
 
 In daily use on a Google TV Streamer 4K with a ~14k-item library. All core screens are built: Home, timeline, albums, people, places, smart search, the photo/video viewer, slideshow and screensaver. Expect the occasional rough edge.
+
+## Privacy
+
+The app collects nothing: no analytics, ads or tracking, and it talks only to the server you set up. See the [privacy policy](docs/PRIVACY.md).
 
 ## License
 

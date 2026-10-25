@@ -1,0 +1,29 @@
+TV client for Immich brings your self-hosted Immich photo and video library to Android TV and Google TV, built for the couch and the remote.
+
+BROWSE YOUR WHOLE LIBRARY
+• "On this day" memories, Recent, Albums, People, Places and Videos on one Home screen
+• A smooth month-by-month timeline, even with tens of thousands of photos, plus a year rail to jump across years
+• Smart search: find photos by what's in them ("beach", "birthday cake", "dog") using your server's smart search
+
+ENJOY IT ON THE BIG SCREEN
+• Full-screen photo and video viewer with hardware-accelerated playback and HDR
+• Motion Photos (live photos) play on demand
+• Photo details: date, place, camera, exposure and people
+• Slideshow from any photo, and an optional screensaver with photos from your library
+
+MADE FOR THE REMOTE
+• Every screen works with just the D-pad, OK and Back
+• Light and dark themes and three text sizes
+• English, Spanish, Portuguese and Italian
+
+READ-ONLY AND PRIVATE
+• The app can only view your library. It can never upload, delete, edit or favorite anything on your server.
+• It talks only to the server you set up. No analytics, ads or tracking.
+• Your API key is encrypted on the device.
+• Servers with a self-signed certificate are supported: you review the certificate once and trust exactly that one.
+
+WHAT YOU NEED
+• Your own Immich server (tested with Immich v3.x) that your TV can reach
+• An API key from Immich (Account Settings → API Keys). A key with read-only permissions is recommended.
+
+This is an unofficial, open-source app (AGPL-3.0). It is not affiliated with, endorsed by, or sponsored by the Immich project.

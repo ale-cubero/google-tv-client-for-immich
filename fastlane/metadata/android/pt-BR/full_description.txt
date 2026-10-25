@@ -1,0 +1,29 @@
+Cliente de TV para Immich leva sua biblioteca de fotos e vídeos do Immich auto-hospedado para o Android TV e o Google TV, feito para o sofá e o controle remoto.
+
+EXPLORE TODA A SUA BIBLIOTECA
+• Lembranças de "Neste dia", Recentes, Álbuns, Pessoas, Lugares e Vídeos em uma única tela inicial
+• Uma linha do tempo fluida mês a mês, mesmo com dezenas de milhares de fotos, e uma barra de anos para pular entre os anos
+• Busca inteligente: encontre fotos pelo que aparece nelas ("praia", "bolo de aniversário", "cachorro") usando a busca inteligente do seu servidor
+
+APROVEITE NA TELA GRANDE
+• Visualizador de fotos e vídeos em tela cheia, com reprodução acelerada por hardware e HDR
+• Fotos com movimento (live photos) reproduzem quando você quiser
+• Detalhes de cada foto: data, local, câmera, exposição e pessoas
+• Apresentação a partir de qualquer foto e um protetor de tela opcional com fotos da sua biblioteca
+
+FEITO PARA O CONTROLE REMOTO
+• Todas as telas funcionam só com as setas, OK e Voltar
+• Temas claro e escuro e três tamanhos de texto
+• Português, inglês, espanhol e italiano
+
+SOMENTE LEITURA E PRIVADO
+• O app só pode visualizar sua biblioteca. Ele nunca envia, exclui, edita ou marca como favorito nada no seu servidor.
+• Ele se comunica apenas com o servidor que você configurar. Sem análises, anúncios ou rastreamento.
+• Sua chave de API fica criptografada no dispositivo.
+• Compatível com servidores com certificado autoassinado: você revisa o certificado uma vez e confia apenas nele.
+
+O QUE VOCÊ PRECISA
+• Seu próprio servidor Immich (testado com o Immich v3.x) acessível pela sua TV
+• Uma chave de API do Immich (Configurações da conta → Chaves de API). Recomenda-se uma chave com permissões somente de leitura.
+
+Este é um app não oficial e de código aberto (AGPL-3.0). Ele não é afiliado, endossado nem patrocinado pelo projeto Immich.
