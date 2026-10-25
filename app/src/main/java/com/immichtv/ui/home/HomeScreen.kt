@@ -341,6 +341,14 @@ private fun HomeContent(
     LaunchedEffect(Unit) { runCatching { timelineFocus.requestFocus() } }
 }
 
+/**
+ * Clickable for the hand-styled controls here, which draw their own focus state (fill + border).
+ * The default indication would add a rectangular 10%-black focus overlay over the rounded shape —
+ * invisible on dark, a grey square on the light theme.
+ */
+private fun Modifier.chromeClickable(onClick: () -> Unit) =
+    clickable(interactionSource = null, indication = null, onClick = onClick)
+
 // Shared by the three header controls so Timeline / Search / Settings sit on one line.
 private val TopBarHeight = 40.dp
 private val TopBarIcon = 20.dp
@@ -359,7 +367,7 @@ private fun SearchBar(onClick: () -> Unit, modifier: Modifier = Modifier) {
         modifier = modifier
             .height(TopBarHeight)
             .onFocusChanged { focused = it.isFocused }
-            .clickable(onClick = onClick)
+            .chromeClickable(onClick)
             .background(bg, shape)
             .border(if (focused) 2.dp else 1.dp, border, shape)
             .padding(horizontal = 20.dp),
@@ -404,7 +412,7 @@ private fun ChromeButton(
         modifier = modifier
             .height(TopBarHeight)
             .onFocusChanged { focused = it.isFocused }
-            .clickable(onClick = onClick)
+            .chromeClickable(onClick)
             .background(bg, shape)
             .border(if (focused) 2.dp else 1.dp, border, shape)
             .padding(horizontal = 18.dp),
@@ -479,7 +487,7 @@ private fun MenuItem(
         modifier = modifier
             .fillMaxWidth()
             .onFocusChanged { focused = it.isFocused }
-            .clickable(onClick = onClick)
+            .chromeClickable(onClick)
             .background(
                 if (focused) AppColors.menuFocus else Color.Transparent,
                 RoundedCornerShape(8.dp),
@@ -744,7 +752,7 @@ private fun LanguageRow(
             .fillMaxWidth()
             .padding(horizontal = 10.dp)
             .onFocusChanged { focused = it.isFocused }
-            .clickable(onClick = onClick)
+            .chromeClickable(onClick)
             .background(
                 if (focused) AppColors.menuFocus else Color.Transparent,
                 RoundedCornerShape(8.dp),
@@ -768,6 +776,17 @@ private fun LanguageRow(
     }
 }
 
+/**
+ * A selected chip is filled with primary, so a primary focus border would vanish into it — focus on
+ * the selected chip then needs a contrasting (text-colored) ring to be visible from the couch.
+ */
+@Composable
+private fun chipBorderColor(selected: Boolean, focused: Boolean) = when {
+    focused && selected -> MaterialTheme.colorScheme.onSurface
+    focused -> MaterialTheme.colorScheme.primary
+    else -> AppColors.outline
+}
+
 @Composable
 private fun IconOptionChip(
     label: String,
@@ -788,11 +807,11 @@ private fun IconOptionChip(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier
             .onFocusChanged { focused = it.isFocused }
-            .clickable(onClick = onClick)
+            .chromeClickable(onClick)
             .background(bg, RoundedCornerShape(18.dp))
             .border(
-                width = if (focused) 2.dp else 1.dp,
-                color = if (focused) MaterialTheme.colorScheme.primary else AppColors.outline,
+                width = if (focused) 3.dp else 1.dp,
+                color = chipBorderColor(selected, focused),
                 shape = RoundedCornerShape(18.dp),
             )
             .padding(horizontal = 18.dp, vertical = 10.dp),
@@ -819,11 +838,11 @@ private fun OptionChip(
     Box(
         modifier = modifier
             .onFocusChanged { focused = it.isFocused }
-            .clickable(onClick = onClick)
+            .chromeClickable(onClick)
             .background(bg, RoundedCornerShape(18.dp))
             .border(
-                width = if (focused) 2.dp else 1.dp,
-                color = if (focused) MaterialTheme.colorScheme.primary else AppColors.outline,
+                width = if (focused) 3.dp else 1.dp,
+                color = chipBorderColor(selected, focused),
                 shape = RoundedCornerShape(18.dp),
             )
             .padding(horizontal = 18.dp, vertical = 8.dp),
