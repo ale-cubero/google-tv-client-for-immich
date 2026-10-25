@@ -76,9 +76,10 @@ class ImmichRepository @Inject constructor(
     suspend fun getMemories(): List<Memory> {
         val thisYear = Year.now().value
         val strings = stringsFor(settings.languageSnapshot)
-        // Ask for today's memories only (local calendar date at midnight, UTC-stamped like Immich's
-        // stored showAt). Recomputed on every load, so the rail follows the current day.
-        val today = "${java.time.LocalDate.now()}T00:00:00.000Z"
+        // Ask for today's memories only (local calendar date). Immich 3.x validates `for` as a bare
+        // YYYY-MM-DD and 400s on a full datetime; older servers accept it too. Recomputed on every
+        // load, so the rail follows the current day.
+        val today = LocalDate.now().toString()
         val dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
             .withLocale(settings.languageSnapshot.toLocale())
         return api.getMemories(forDate = today)

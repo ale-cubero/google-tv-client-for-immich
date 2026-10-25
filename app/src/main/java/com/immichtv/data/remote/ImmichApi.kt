@@ -55,7 +55,7 @@ interface ImmichApi {
     suspend fun getAssetDetail(@Path("id") id: String): AssetDetailDto
 
     // `for` selects the day whose "on this day" memories to return (else the server returns
-    // memories for every day). Value is an ISO datetime at local midnight, e.g. 2026-07-12T00:00:00.000Z.
+    // memories for every day). Value is a bare ISO date, e.g. 2026-07-12 — Immich 3.x rejects a datetime.
     @GET("api/memories")
     suspend fun getMemories(@Query("for") forDate: String): List<MemoryDto>
 
