@@ -59,7 +59,11 @@ class SettingsRepository @Inject constructor(
 
     private val keyUrl = stringPreferencesKey("server_url")
     private val keyApiKey = stringPreferencesKey("api_key")
-    private val keyInsecure = booleanPreferencesKey("allow_insecure")
+    private val keyAllowHttp = booleanPreferencesKey("allow_http")
+    private val keyPinnedCert = stringPreferencesKey("pinned_cert_sha256")
+    // Legacy (≤ v1.46) single "insecure" switch: trusted any certificate AND allowed http://.
+    // Read once to keep http:// working for those users; certificates now need explicit pinning.
+    private val keyLegacyInsecure = booleanPreferencesKey("allow_insecure")
     private val keySlideshowInterval = intPreferencesKey("slideshow_interval_s")
     private val keySlideshowShuffle = booleanPreferencesKey("slideshow_shuffle")
     private val keyThemeMode = stringPreferencesKey("theme_mode")
@@ -151,7 +155,9 @@ class SettingsRepository @Inject constructor(
         dataStore.edit {
             it[keyUrl] = settings.baseUrl
             it[keyApiKey] = KeystoreCrypto.encrypt(settings.apiKey)
-            it[keyInsecure] = settings.allowInsecure
+            it[keyAllowHttp] = settings.allowHttp
+            it[keyPinnedCert] = settings.pinnedCertSha256
+            it.remove(keyLegacyInsecure)
         }
         snapshot = settings
     }
@@ -161,6 +167,7 @@ class SettingsRepository @Inject constructor(
         // Stored encrypted; a decrypt failure (corrupt/legacy value, missing key) reads as
         // "not configured" so the app falls back to the setup screen rather than crashing.
         apiKey = this[keyApiKey]?.let { runCatching { KeystoreCrypto.decrypt(it) }.getOrDefault("") }.orEmpty(),
-        allowInsecure = this[keyInsecure] ?: false,
+        allowHttp = this[keyAllowHttp] ?: this[keyLegacyInsecure] ?: false,
+        pinnedCertSha256 = this[keyPinnedCert].orEmpty(),
     )
 }

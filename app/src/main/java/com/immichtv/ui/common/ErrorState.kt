@@ -21,7 +21,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.runtime.Composable
@@ -35,11 +37,17 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.immichtv.ui.i18n.LocalStrings
 import com.immichtv.ui.theme.AppColors
+import com.immichtv.ui.theme.AppDimens
 
 /** Centered error: icon + message + a focusable Retry button (mirrors the viewer's error state). */
 @Composable
 fun ErrorState(message: String, onRetry: () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    // Width-capped and inside the overscan margins so long messages wrap instead of reaching the
+    // screen edges, which some TVs crop.
+    Box(
+        modifier = Modifier.fillMaxSize().padding(horizontal = AppDimens.overscanH),
+        contentAlignment = Alignment.Center,
+    ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(20.dp),
@@ -55,6 +63,7 @@ fun ErrorState(message: String, onRetry: () -> Unit) {
                 color = AppColors.error,
                 style = MaterialTheme.typography.headlineSmall,
                 textAlign = TextAlign.Center,
+                modifier = Modifier.widthIn(max = 900.dp),
             )
             Button(onClick = onRetry, colors = brandButtonColors()) { Text(LocalStrings.current.retry) }
         }

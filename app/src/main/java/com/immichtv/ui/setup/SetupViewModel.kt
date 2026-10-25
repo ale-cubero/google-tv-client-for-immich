@@ -21,6 +21,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.immichtv.data.ImmichRepository
 import com.immichtv.data.prefs.SettingsRepository
+import com.immichtv.data.remote.CertPins
+import com.immichtv.data.remote.CertificateProbe
 import com.immichtv.domain.ServerSettings
 import com.immichtv.ui.common.toUserMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -29,14 +31,30 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import java.text.DateFormat
 import javax.inject.Inject
+import javax.net.ssl.SSLException
+import javax.security.auth.x500.X500Principal
+
+/** A server certificate the platform rejected, awaiting the user's decision to trust it. */
+data class CertPrompt(
+    val host: String,
+    val subject: String,
+    val issuer: String,
+    val validUntil: String,
+    val fingerprint: String, // display form, "AB:CD:…"
+    val sha256: String,      // what gets pinned if the user trusts it
+)
 
 data class SetupUiState(
     val url: String = "",
     val apiKey: String = "",
-    val allowInsecure: Boolean = false,
+    val allowHttp: Boolean = false,
+    val pinnedCertSha256: String = "",
     val validating: Boolean = false,
     val error: String? = null,
+    val certPrompt: CertPrompt? = null,
 )
 
 @HiltViewModel
@@ -49,29 +67,31 @@ class SetupViewModel @Inject constructor(
         SetupUiState(
             url = settings.snapshot.baseUrl,
             apiKey = settings.snapshot.apiKey,
-            allowInsecure = settings.snapshot.allowInsecure,
+            allowHttp = settings.snapshot.allowHttp,
+            pinnedCertSha256 = settings.snapshot.pinnedCertSha256,
         ),
     )
     val state: StateFlow<SetupUiState> = _state.asStateFlow()
 
-    fun onUrlChange(value: String) = _state.update { it.copy(url = value, error = null) }
+    // A trusted certificate belongs to the server it was approved for: editing the URL drops it.
+    fun onUrlChange(value: String) = _state.update { it.copy(url = value, pinnedCertSha256 = "", error = null) }
     fun onApiKeyChange(value: String) = _state.update { it.copy(apiKey = value, error = null) }
-    fun onInsecureChange(value: Boolean) = _state.update { it.copy(allowInsecure = value, error = null) }
+    fun onAllowHttpChange(value: Boolean) = _state.update { it.copy(allowHttp = value, error = null) }
 
     fun validateAndSave(onConfigured: () -> Unit) {
         val current = _state.value
         // The API key is a bearer credential: by default it only travels over TLS, so reject
-        // http:// up front. The insecure opt-in (self-hosted servers without a valid cert) waives
-        // this — the user has explicitly accepted an unencrypted/untrusted connection.
+        // http:// up front unless the user has explicitly allowed unencrypted connections.
         val strings = settings.currentStrings()
-        if (!current.allowInsecure && current.url.trim().startsWith("http://")) {
+        if (!current.allowHttp && current.url.trim().startsWith("http://")) {
             _state.update { it.copy(error = strings.setupErrorHttps) }
             return
         }
         val normalized = ServerSettings(
-            baseUrl = normalizeBaseUrl(current.url, current.allowInsecure),
+            baseUrl = normalizeBaseUrl(current.url, current.allowHttp),
             apiKey = current.apiKey.trim(),
-            allowInsecure = current.allowInsecure,
+            allowHttp = current.allowHttp,
+            pinnedCertSha256 = current.pinnedCertSha256,
         )
         if (!normalized.isConfigured) {
             _state.update { it.copy(error = strings.setupErrorBoth) }
@@ -79,7 +99,7 @@ class SetupViewModel @Inject constructor(
         }
 
         _state.update { it.copy(validating = true, error = null) }
-        // Stage so the interceptors use the entered creds during validation.
+        // Stage so the interceptors (and the pinning trust manager) use the entered settings.
         settings.stageForValidation(normalized)
 
         viewModelScope.launch {
@@ -90,19 +110,60 @@ class SetupViewModel @Inject constructor(
                     onConfigured()
                 },
                 onFailure = { e ->
-                    _state.update { it.copy(validating = false, error = e.toUserMessage(settings.currentStrings())) }
+                    // The platform rejected the server's certificate (self-signed, private CA, or a
+                    // name it doesn't cover): show that certificate and let the user decide.
+                    val prompt = if (e is SSLException) certPromptFor(normalized) else null
+                    _state.update {
+                        it.copy(
+                            validating = false,
+                            certPrompt = prompt,
+                            error = if (prompt == null) e.toUserMessage(settings.currentStrings()) else null,
+                        )
+                    }
                 },
             )
         }
     }
 
-    private fun normalizeBaseUrl(input: String, allowInsecure: Boolean): String {
+    /** Trust the prompted certificate for this server only, then connect again. */
+    fun trustCertificate(onConfigured: () -> Unit) {
+        val prompt = _state.value.certPrompt ?: return
+        _state.update { it.copy(certPrompt = null, pinnedCertSha256 = prompt.sha256) }
+        validateAndSave(onConfigured)
+    }
+
+    fun rejectCertificate() = _state.update {
+        it.copy(certPrompt = null, error = settings.currentStrings().setupCertRejected)
+    }
+
+    private suspend fun certPromptFor(server: ServerSettings): CertPrompt? {
+        val leaf = CertificateProbe.fetchLeaf(server.baseUrl) ?: return null
+        val sha256 = CertPins.sha256(leaf)
+        // Already trusted and still failing: some other TLS problem — report it, don't re-prompt.
+        if (sha256.equals(server.pinnedCertSha256, ignoreCase = true)) return null
+        val locale = settings.languageSnapshot.toLocale()
+        return CertPrompt(
+            host = server.baseUrl.toHttpUrlOrNull()?.host.orEmpty(),
+            subject = leaf.subjectX500Principal.commonName(),
+            issuer = leaf.issuerX500Principal.commonName(),
+            validUntil = DateFormat.getDateInstance(DateFormat.MEDIUM, locale).format(leaf.notAfter),
+            fingerprint = CertPins.display(sha256),
+            sha256 = sha256,
+        )
+    }
+
+    private fun X500Principal.commonName(): String {
+        val dn = getName(X500Principal.RFC2253)
+        return Regex("""(?:^|,)CN=((?:\\.|[^,])*)""").find(dn)?.groupValues?.get(1) ?: dn
+    }
+
+    private fun normalizeBaseUrl(input: String, allowHttp: Boolean): String {
         var s = input.trim()
         if (s.isEmpty()) return s
-        // Respect an explicit scheme; otherwise default to http:// for insecure (self-hosted, likely
-        // no TLS) and https:// otherwise.
+        // Respect an explicit scheme; otherwise default to http:// when the user allowed unencrypted
+        // connections (home-network server without TLS) and https:// otherwise.
         if (!s.startsWith("http://") && !s.startsWith("https://")) {
-            s = if (allowInsecure) "http://$s" else "https://$s"
+            s = if (allowHttp) "http://$s" else "https://$s"
         }
         return s.trimEnd('/')
     }

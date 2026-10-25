@@ -87,8 +87,18 @@ interface Strings {
     val setupServerUrl: String
     val setupApiKey: String
     val setupShowKey: String
-    val setupInsecure: String
-    val setupInsecureSubtitle: String
+    val setupAllowHttp: String
+    val setupAllowHttpSubtitle: String
+    val setupCertRejected: String
+    val certTitle: String
+    fun certIntro(host: String): String
+    val certSubject: String
+    val certIssuer: String
+    val certValidUntil: String
+    val certFingerprint: String
+    val certWarning: String
+    val certTrust: String
+    val certCancel: String
     val setupConnect: String
     val setupValidating: String
     val setupErrorHttps: String
@@ -213,14 +223,27 @@ object En : Strings {
     override val setupServerUrl = "Server URL"
     override val setupApiKey = "API Key"
     override val setupShowKey = "Show API key"
-    override val setupInsecure = "Allow insecure connection"
-    override val setupInsecureSubtitle =
-        "Trust self-signed certificates and allow http:// — for self-hosted servers without a valid " +
-            "certificate. The API key may travel unencrypted."
+    override val setupAllowHttp = "Allow unencrypted connection (http://)"
+    override val setupAllowHttpSubtitle =
+        "For servers on your home network without HTTPS. Your API key and photos travel unencrypted."
+    override val setupCertRejected = "Connection cancelled: the server's certificate wasn't trusted."
+    override val certTitle = "Trust this server's certificate?"
+    override fun certIntro(host: String) =
+        "$host presented a certificate that isn't issued by a trusted authority — usual for self-hosted " +
+            "servers with a self-signed certificate."
+    override val certSubject = "Issued to"
+    override val certIssuer = "Issued by"
+    override val certValidUntil = "Valid until"
+    override val certFingerprint = "SHA-256 fingerprint"
+    override val certWarning =
+        "Only trust it if this fingerprint matches your server's certificate. The app will then accept " +
+            "this exact certificate from this server, and nothing else."
+    override val certTrust = "Trust and connect"
+    override val certCancel = "Don't trust"
     override val setupConnect = "Connect"
     override val setupValidating = "Validating…"
     override val setupErrorHttps =
-        "Only https:// servers are supported unless you enable an insecure connection below"
+        "Only https:// servers are supported unless you allow unencrypted connections below"
     override val setupErrorBoth = "Enter both a server URL and an API key"
 
     override val timelineLoading = "Loading timeline…"
@@ -275,8 +298,8 @@ object En : Strings {
     override val errUnreachable =
         "Can't reach your Immich server.\nMake sure it's online and on the same network."
     override val errTls =
-        "Secure connection failed.\nIf your server uses a self-signed certificate, enable " +
-            "\"Allow insecure connection\" in Settings → Change server."
+        "Secure connection failed.\nIf your server's certificate changed, open Settings → Change server " +
+            "and press Connect to review and trust it."
     override val errApiKey = "Your API key was rejected.\nUpdate it in Settings → Change server."
     override fun errServer(code: Int) =
         "Your Immich server reported an error (HTTP $code).\nTry again shortly."
@@ -345,14 +368,27 @@ object Es : Strings {
     override val setupServerUrl = "URL del servidor"
     override val setupApiKey = "Clave API"
     override val setupShowKey = "Mostrar clave API"
-    override val setupInsecure = "Permitir conexión insegura"
-    override val setupInsecureSubtitle =
-        "Confía en certificados autofirmados y permite http:// — para servidores autoalojados sin un " +
-            "certificado válido. La clave API podría viajar sin cifrar."
+    override val setupAllowHttp = "Permitir conexión sin cifrar (http://)"
+    override val setupAllowHttpSubtitle =
+        "Para servidores en tu red doméstica sin HTTPS. Tu clave API y tus fotos viajan sin cifrar."
+    override val setupCertRejected = "Conexión cancelada: no se confió en el certificado del servidor."
+    override val certTitle = "¿Confiar en el certificado de este servidor?"
+    override fun certIntro(host: String) =
+        "$host presentó un certificado que no fue emitido por una autoridad de confianza, algo habitual " +
+            "en servidores autoalojados con un certificado autofirmado."
+    override val certSubject = "Emitido para"
+    override val certIssuer = "Emitido por"
+    override val certValidUntil = "Válido hasta"
+    override val certFingerprint = "Huella digital SHA-256"
+    override val certWarning =
+        "Confía en él solo si esta huella coincide con el certificado de tu servidor. La app aceptará " +
+            "entonces este certificado exacto de este servidor, y ningún otro."
+    override val certTrust = "Confiar y conectar"
+    override val certCancel = "No confiar"
     override val setupConnect = "Conectar"
     override val setupValidating = "Validando…"
     override val setupErrorHttps =
-        "Solo se admiten servidores https:// a menos que actives una conexión insegura más abajo"
+        "Solo se admiten servidores https:// a menos que permitas conexiones sin cifrar más abajo"
     override val setupErrorBoth = "Introduce la URL del servidor y la clave API"
 
     override val timelineLoading = "Cargando línea de tiempo…"
@@ -408,8 +444,8 @@ object Es : Strings {
     override val errUnreachable =
         "No se puede acceder a tu servidor Immich.\nAsegúrate de que esté encendido y en la misma red."
     override val errTls =
-        "La conexión segura falló.\nSi tu servidor usa un certificado autofirmado, activa " +
-            "\"Permitir conexión insegura\" en Ajustes → Cambiar servidor."
+        "La conexión segura falló.\nSi el certificado de tu servidor cambió, abre Ajustes → Cambiar " +
+            "servidor y pulsa Conectar para revisarlo y confiar en él."
     override val errApiKey = "Tu clave API fue rechazada.\nActualízala en Ajustes → Cambiar servidor."
     override fun errServer(code: Int) =
         "Tu servidor Immich informó un error (HTTP $code).\nInténtalo de nuevo en un momento."
@@ -478,14 +514,27 @@ object Pt : Strings {
     override val setupServerUrl = "URL do servidor"
     override val setupApiKey = "Chave de API"
     override val setupShowKey = "Mostrar chave de API"
-    override val setupInsecure = "Permitir conexão insegura"
-    override val setupInsecureSubtitle =
-        "Confie em certificados autoassinados e permita http:// — para servidores auto-hospedados sem um " +
-            "certificado válido. A chave de API pode trafegar sem criptografia."
+    override val setupAllowHttp = "Permitir conexão sem criptografia (http://)"
+    override val setupAllowHttpSubtitle =
+        "Para servidores na sua rede doméstica sem HTTPS. Sua chave de API e suas fotos trafegam sem criptografia."
+    override val setupCertRejected = "Conexão cancelada: o certificado do servidor não foi considerado confiável."
+    override val certTitle = "Confiar no certificado deste servidor?"
+    override fun certIntro(host: String) =
+        "$host apresentou um certificado que não foi emitido por uma autoridade confiável — comum em " +
+            "servidores auto-hospedados com certificado autoassinado."
+    override val certSubject = "Emitido para"
+    override val certIssuer = "Emitido por"
+    override val certValidUntil = "Válido até"
+    override val certFingerprint = "Impressão digital SHA-256"
+    override val certWarning =
+        "Só confie nele se esta impressão digital corresponder ao certificado do seu servidor. O app " +
+            "passará a aceitar exatamente este certificado deste servidor, e nenhum outro."
+    override val certTrust = "Confiar e conectar"
+    override val certCancel = "Não confiar"
     override val setupConnect = "Conectar"
     override val setupValidating = "Validando…"
     override val setupErrorHttps =
-        "Só há suporte para servidores https:// a menos que você ative uma conexão insegura abaixo"
+        "Só há suporte para servidores https:// a menos que você permita conexões sem criptografia abaixo"
     override val setupErrorBoth = "Informe a URL do servidor e a chave de API"
 
     override val timelineLoading = "Carregando linha do tempo…"
@@ -541,8 +590,8 @@ object Pt : Strings {
     override val errUnreachable =
         "Não foi possível acessar seu servidor Immich.\nVerifique se ele está online e na mesma rede."
     override val errTls =
-        "A conexão segura falhou.\nSe seu servidor usa um certificado autoassinado, ative " +
-            "\"Permitir conexão insegura\" em Configurações → Alterar servidor."
+        "A conexão segura falhou.\nSe o certificado do seu servidor mudou, abra Configurações → Alterar " +
+            "servidor e pressione Conectar para revisá-lo e confiar nele."
     override val errApiKey = "Sua chave de API foi rejeitada.\nAtualize-a em Configurações → Alterar servidor."
     override fun errServer(code: Int) =
         "Seu servidor Immich informou um erro (HTTP $code).\nTente novamente em instantes."
@@ -611,14 +660,27 @@ object It : Strings {
     override val setupServerUrl = "URL del server"
     override val setupApiKey = "Chiave API"
     override val setupShowKey = "Mostra chiave API"
-    override val setupInsecure = "Consenti connessione non sicura"
-    override val setupInsecureSubtitle =
-        "Considera attendibili i certificati autofirmati e consenti http:// — per server self-hosted senza un " +
-            "certificato valido. La chiave API potrebbe viaggiare non criptata."
+    override val setupAllowHttp = "Consenti connessione non criptata (http://)"
+    override val setupAllowHttpSubtitle =
+        "Per server sulla rete di casa senza HTTPS. La chiave API e le foto viaggiano non criptate."
+    override val setupCertRejected = "Connessione annullata: il certificato del server non è stato considerato attendibile."
+    override val certTitle = "Considerare attendibile il certificato di questo server?"
+    override fun certIntro(host: String) =
+        "$host ha presentato un certificato non emesso da un'autorità attendibile: è normale per i server " +
+            "self-hosted con un certificato autofirmato."
+    override val certSubject = "Rilasciato a"
+    override val certIssuer = "Rilasciato da"
+    override val certValidUntil = "Valido fino al"
+    override val certFingerprint = "Impronta SHA-256"
+    override val certWarning =
+        "Consideralo attendibile solo se questa impronta corrisponde al certificato del tuo server. L'app " +
+            "accetterà quindi esattamente questo certificato da questo server, e nessun altro."
+    override val certTrust = "Considera attendibile e connetti"
+    override val certCancel = "Non considerare attendibile"
     override val setupConnect = "Connetti"
     override val setupValidating = "Convalida…"
     override val setupErrorHttps =
-        "Sono supportati solo server https:// a meno che tu non abiliti una connessione non sicura qui sotto"
+        "Sono supportati solo server https:// a meno che tu non consenta connessioni non criptate qui sotto"
     override val setupErrorBoth = "Inserisci sia l'URL del server sia la chiave API"
 
     override val timelineLoading = "Caricamento cronologia…"
@@ -674,8 +736,8 @@ object It : Strings {
     override val errUnreachable =
         "Impossibile raggiungere il tuo server Immich.\nAssicurati che sia online e sulla stessa rete."
     override val errTls =
-        "Connessione sicura non riuscita.\nSe il tuo server usa un certificato autofirmato, abilita " +
-            "\"Consenti connessione non sicura\" in Impostazioni → Cambia server."
+        "Connessione sicura non riuscita.\nSe il certificato del tuo server è cambiato, apri Impostazioni → " +
+            "Cambia server e premi Connetti per verificarlo e considerarlo attendibile."
     override val errApiKey = "La tua chiave API è stata rifiutata.\nAggiornala in Impostazioni → Cambia server."
     override fun errServer(code: Int) =
         "Il tuo server Immich ha segnalato un errore (HTTP $code).\nRiprova tra poco."

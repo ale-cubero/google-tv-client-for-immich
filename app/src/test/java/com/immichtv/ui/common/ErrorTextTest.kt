@@ -51,9 +51,10 @@ class ErrorTextTest {
         assertTrue(IOException("connection reset").toUserMessage(En).contains("Can't reach your Immich server"))
     }
 
-    @Test fun tlsFailure_hintsAtInsecureToggle() {
+    @Test fun tlsFailure_pointsAtCertificateReview() {
         val msg = SSLHandshakeException("bad cert").toUserMessage(En)
-        assertTrue(msg.contains("Allow insecure connection"))
+        assertTrue(msg.contains("Change server"))
+        assertTrue(msg.contains("trust it"))
     }
 
     @Test fun unauthorized_pointsAtApiKey() {
