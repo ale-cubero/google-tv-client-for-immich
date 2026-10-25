@@ -60,6 +60,7 @@ data class Memory(
     val id: String,
     val title: String,
     val assets: List<Asset>,
+    val subtitle: String = "", // "Oct 24, 2025 · 14 items" — tells same-year memories apart
 )
 
 /** Rich detail for the viewer's metadata panel. Blank fields are simply omitted from the UI. */

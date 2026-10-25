@@ -34,9 +34,11 @@ import com.immichtv.domain.Person
 import com.immichtv.domain.Place
 import com.immichtv.ui.i18n.stringsFor
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.Year
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -77,14 +79,21 @@ class ImmichRepository @Inject constructor(
         // Ask for today's memories only (local calendar date at midnight, UTC-stamped like Immich's
         // stored showAt). Recomputed on every load, so the rail follows the current day.
         val today = "${java.time.LocalDate.now()}T00:00:00.000Z"
+        val dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+            .withLocale(settings.languageSnapshot.toLocale())
         return api.getMemories(forDate = today)
             .filter { it.assets.isNotEmpty() }
             .map { dto ->
                 val yearsAgo = (thisYear - dto.data.year).coerceAtLeast(0)
+                val assets = dto.assets.map { it.toDomain() }
+                // Cover's capture day; fall back to today's month/day in the memory's year.
+                val day = runCatching { LocalDate.parse(assets.first().dateTime.take(10)) }
+                    .getOrElse { LocalDate.now().withYear(dto.data.year.coerceAtLeast(1)) }
                 Memory(
                     id = dto.id,
                     title = if (yearsAgo == 0) strings.memoryThisYear else strings.memoryYearsAgo(yearsAgo),
-                    assets = dto.assets.map { it.toDomain() },
+                    assets = assets,
+                    subtitle = "${day.format(dateFormat)} · ${strings.items(assets.size)}",
                 )
             }
     }

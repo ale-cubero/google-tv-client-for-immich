@@ -226,7 +226,7 @@ private fun HomeContent(
     val timelineFocus = remember { FocusRequester() }
     val str = LocalStrings.current
     LazyColumn(
-        contentPadding = PaddingValues(top = 40.dp, bottom = 60.dp),
+        contentPadding = PaddingValues(top = AppDimens.overscanV, bottom = 60.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item {
@@ -240,10 +240,10 @@ private fun HomeContent(
             ) {
                 Button(
                     onClick = onOpenTimeline,
-                    modifier = Modifier.focusRequester(timelineFocus),
+                    modifier = Modifier.height(TopBarHeight).focusRequester(timelineFocus),
                     colors = brandButtonColors(),
                 ) {
-                    Icon(Icons.Filled.CalendarMonth, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Filled.CalendarMonth, contentDescription = null, modifier = Modifier.size(TopBarIcon))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(str.timeline)
                 }
@@ -326,6 +326,10 @@ private fun HomeContent(
     LaunchedEffect(Unit) { runCatching { timelineFocus.requestFocus() } }
 }
 
+// Shared by the three header controls so Timeline / Search / Settings sit on one line.
+private val TopBarHeight = 40.dp
+private val TopBarIcon = 20.dp
+
 @Composable
 private fun SearchBar(onClick: () -> Unit, modifier: Modifier = Modifier) {
     var focused by remember { mutableStateOf(false) }
@@ -338,17 +342,18 @@ private fun SearchBar(onClick: () -> Unit, modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         modifier = modifier
+            .height(TopBarHeight)
             .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = onClick)
             .background(bg, shape)
             .border(if (focused) 2.dp else 1.dp, border, shape)
-            .padding(horizontal = 20.dp, vertical = 11.dp),
+            .padding(horizontal = 20.dp),
     ) {
         Icon(
             imageVector = Icons.Filled.Search,
             contentDescription = null,
             tint = fg,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(TopBarIcon),
         )
         Text(
             text = LocalStrings.current.searchHint,
@@ -360,7 +365,7 @@ private fun SearchBar(onClick: () -> Unit, modifier: Modifier = Modifier) {
             imageVector = Icons.Filled.ChevronRight,
             contentDescription = null,
             tint = fg,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(TopBarIcon),
         )
     }
 }
@@ -376,17 +381,18 @@ private fun SettingsButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier
+            .height(TopBarHeight)
             .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = onClick)
             .background(bg, shape)
             .border(if (focused) 2.dp else 1.dp, border, shape)
-            .padding(horizontal = 18.dp, vertical = 8.dp),
+            .padding(horizontal = 18.dp),
     ) {
         Icon(
             imageVector = Icons.Filled.Settings,
             contentDescription = null,
             tint = fg,
-            modifier = Modifier.size(16.dp),
+            modifier = Modifier.size(TopBarIcon),
         )
         Text(
             text = LocalStrings.current.settings,
@@ -1082,19 +1088,29 @@ private fun MemoryTile(memory: Memory, onClick: () -> Unit) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(72.dp)
+                    .height(88.dp)
                     .align(Alignment.BottomCenter)
                     .background(
                         Brush.verticalGradient(listOf(Color.Transparent, Color(0xCC000000))),
                     ),
             )
-            Text(
-                text = memory.title,
-                color = Color.White,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.align(Alignment.BottomStart).padding(14.dp),
-            )
+            Column(modifier = Modifier.align(Alignment.BottomStart).padding(14.dp)) {
+                Text(
+                    text = memory.title,
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                if (memory.subtitle.isNotEmpty()) {
+                    Text(
+                        text = memory.subtitle,
+                        color = Color(0xFFDFE3E7),
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
         }
     }
 }
