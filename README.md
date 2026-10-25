@@ -24,7 +24,7 @@ You'll need:
 - A **Google TV or Android TV** device running Android 8.0 or newer (developed on a Google TV Streamer 4K).
 - An **Immich server** the TV can reach — tested with Immich **v3.x**.
 - A **computer on the same network** with Android's free [platform-tools](https://developer.android.com/tools/releases/platform-tools) installed (this provides the `adb` command).
-- The app's **APK file**. Prebuilt downloads aren't published yet, so for now build one from source — see [Building from source](#building-from-source).
+- The app's **APK file** — download `immich-tv-<version>.apk` from the [latest release](https://github.com/ale-cubero/google-tv-client-for-immich/releases/latest).
 
 ### 1. Turn on developer mode on the TV
 
@@ -39,12 +39,12 @@ On the **Wireless debugging** screen, choose **Pair device with pairing code**. 
 ```bash
 adb pair <tv-ip>:<pairing-port>        # enter the 6-digit code when asked
 adb connect <tv-ip>:<port>             # the IP and port shown under "Wireless debugging"
-adb install -r app-release.apk
+adb install -r immich-tv-<version>.apk
 ```
 
 If the TV asks **"Allow debugging?"**, choose **Always allow**. The app then appears in your TV's apps list as **TV client for Immich**.
 
-> To **update** later, run the same `adb install -r` with the new APK — your server settings are kept. To remove it, uninstall it from the TV's app settings like any other app.
+> To **update** later, download the newest APK from [Releases](https://github.com/ale-cubero/google-tv-client-for-immich/releases/latest) and run the same `adb install -r` — your server settings are kept. To remove it, uninstall it from the TV's app settings like any other app.
 
 ### 3. Create an API key in Immich
 
