@@ -21,7 +21,7 @@ A native **Android TV / Google TV** client for a self-hosted [Immich](https://im
 
 The app ships with **dark and light themes**, styled after Immich's own colors.
 
-**Home** — memories, recent, albums, people, and videos rails
+**Home** — memories, recent, albums, people, places, and videos rails
 
 | Dark | Light |
 | --- | --- |
@@ -33,7 +33,7 @@ The app ships with **dark and light themes**, styled after Immich's own colors.
 | --- | --- |
 | ![Timeline, dark](docs/screenshots/timeline.png) | ![Timeline, light](docs/screenshots/timeline-light.png) |
 
-**Viewer** — full‑screen photo with the metadata panel (OK on a photo). The viewer stays dark in both themes, as photos and videos look best on black.
+**Viewer** — full‑screen photo with the metadata panel (OK → Show details). The viewer stays dark in both themes, as photos and videos look best on black.
 
 ![Viewer with metadata panel](docs/screenshots/viewer-metadata.png)
 
@@ -41,7 +41,7 @@ The app ships with **dark and light themes**, styled after Immich's own colors.
 
 ## In detail
 
-- **Home** — an "On this day" memories row plus Recent, Albums, People, and Videos rails, and a Settings menu (change server, refresh, slideshow settings, logout, about).
+- **Home** — an "On this day" memories row plus Recent, Albums, People, Places, and Videos rails, and a Settings menu (change server, refresh, slideshow settings, logout, about).
 - **Timeline** — the whole library in one smooth grid, driven by Immich's month "buckets": all month boundaries are known up front, each month's assets load lazily as you scroll, with prefetch and an LRU that evicts far‑off months. A year scrubber on the right edge jumps across a multi‑year library instantly (and always shows the year you're in).
 - **Search** — a search bar at the top of Home runs Immich's smart (CLIP) search: results match by meaning and recognized objects/scenes, not filenames. Pick any result to open it in the viewer.
 - **Albums, People & Places** — browse an album, a person, or a geographic place (city) in the same grid. Places uses Immich's location data ("Explore").
