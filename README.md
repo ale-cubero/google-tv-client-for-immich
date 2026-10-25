@@ -6,6 +6,14 @@ A native **Google TV / Android TV** app for browsing your self-hosted [Immich](h
 
 ![Home screen](docs/screenshots/home.png)
 
+## Why this exists
+
+I moved my photo library from Synology Photos to Immich, and later wrote this app, because Synology Photos' Android client didn't play my HDR videos properly: depending on their orientation, some showed up stretched and sideways.
+
+The root cause is an Android quirk. Phones record portrait video as landscape frames plus a "rotate 90°" flag. Of the two ways an Android app can display video, the one that keeps HDR intact can't apply that rotation, so portrait clips come out sideways and stretched. The one that can rotate always converts HDR down to washed-out SDR. A player that always uses the same method breaks either portrait videos or HDR.
+
+This app picks per video: landscape and upright videos keep full HDR, and only rotated clips take the rotating path, so they always appear upright. It reads the rotation from the video's own metadata, because some TV decoders, including the Google TV Streamer's, under-report it.
+
 ## Features
 
 - **Browse your whole library** — an "On this day" memories row, Recent, Albums, People, Places and Videos, plus a month-by-month timeline of everything.
