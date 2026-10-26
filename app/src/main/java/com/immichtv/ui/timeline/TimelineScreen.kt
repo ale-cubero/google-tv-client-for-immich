@@ -19,6 +19,7 @@ package com.immichtv.ui.timeline
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusGroup
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.BringIntoViewSpec
 import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
@@ -38,6 +39,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -318,6 +320,7 @@ private fun ThumbnailCell(asset: Asset?, modifier: Modifier = Modifier, onClick:
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun YearScrubber(
     buckets: List<BucketMeta>,
@@ -334,10 +337,32 @@ private fun YearScrubber(
             .sortedByDescending { it.first }
     }
 
+    // Keep the current year on screen in the rail, so it's composed and can take focus.
+    val railState = rememberLazyListState()
+    LaunchedEffect(years, currentYear) {
+        val index = years.indexOfFirst { it.first == currentYear }
+        if (index < 0) return@LaunchedEffect
+        val visible = railState.layoutInfo.visibleItemsInfo
+        val fullyVisible = visible.any { it.index == index } &&
+            visible.first().index < index && visible.last().index > index
+        if (!fullyVisible) railState.animateScrollToItem((index - 2).coerceAtLeast(0))
+    }
+
     LazyColumn(
+        state = railState,
         modifier = modifier
             .width(88.dp)
-            .background(AppColors.rail),
+            .background(AppColors.rail)
+            // Entering the rail from the grid in any direction (LEFT wraps from the left column,
+            // RIGHT from the right column) lands on the current year. Without this, RIGHT picks the
+            // year that happens to sit beside the focused cell, and focusing it scrolls the
+            // timeline there, so the year changes.
+            .focusProperties {
+                enter = {
+                    if (years.any { it.first == currentYear }) currentYearRequester else FocusRequester.Default
+                }
+            }
+            .focusGroup(),
         horizontalAlignment = Alignment.CenterHorizontally,
         contentPadding = PaddingValues(vertical = 27.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -376,7 +401,9 @@ private fun YearScrubber(
                     }
                     .onFocusChanged {
                         focused = it.isFocused
-                        if (it.isFocused) onScrubToIndex(flatIndex)
+                        // Arriving on the year you're already in keeps your place in the grid;
+                        // only a different year jumps to its start.
+                        if (it.isFocused && !isCurrent) onScrubToIndex(flatIndex)
                     }
                     .focusable(),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
