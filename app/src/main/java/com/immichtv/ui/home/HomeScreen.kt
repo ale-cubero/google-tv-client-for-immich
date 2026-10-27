@@ -69,6 +69,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -107,6 +108,7 @@ import com.immichtv.ui.i18n.Language
 import com.immichtv.ui.i18n.LocalStrings
 import com.immichtv.ui.theme.AppColors
 import com.immichtv.ui.theme.AppDimens
+import com.immichtv.ui.theme.HomeTileSize
 import com.immichtv.ui.theme.TextSize
 import com.immichtv.ui.theme.ThemeMode
 import com.immichtv.ui.theme.screenBackground
@@ -136,6 +138,7 @@ fun HomeScreen(
     val slideshowPrefs by viewModel.slideshowPrefs.collectAsStateWithLifecycle()
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val textSize by viewModel.textSize.collectAsStateWithLifecycle()
+    val homeTileSize by viewModel.homeTileSize.collectAsStateWithLifecycle()
     val language by viewModel.language.collectAsStateWithLifecycle()
     var showMenu by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
@@ -174,20 +177,22 @@ fun HomeScreen(
         when (val s = state) {
             is HomeUiState.Loading -> LoadingState(LocalStrings.current.homeLoading)
             is HomeUiState.Error -> ErrorState(s.message, onRetry = viewModel::load)
-            is HomeUiState.Ready -> HomeContent(
-                data = s.data,
-                openAssets = viewModel::openAssets,
-                onOpenTimeline = onOpenTimeline,
-                onOpenSearch = onOpenSearch,
-                onOpenViewer = onOpenViewer,
-                onOpenAlbum = onOpenAlbum,
-                onOpenPerson = onOpenPerson,
-                onOpenPlace = onOpenPlace,
-                loadPlaceThumbnail = viewModel::placeThumbnail,
-                onOpenSettings = { showMenu = true },
-                settingsFocus = settingsFocus,
-                onRetry = viewModel::load,
-            )
+            is HomeUiState.Ready -> CompositionLocalProvider(LocalTileScale provides homeTileSize.scale) {
+                HomeContent(
+                    data = s.data,
+                    openAssets = viewModel::openAssets,
+                    onOpenTimeline = onOpenTimeline,
+                    onOpenSearch = onOpenSearch,
+                    onOpenViewer = onOpenViewer,
+                    onOpenAlbum = onOpenAlbum,
+                    onOpenPerson = onOpenPerson,
+                    onOpenPlace = onOpenPlace,
+                    loadPlaceThumbnail = viewModel::placeThumbnail,
+                    onOpenSettings = { showMenu = true },
+                    settingsFocus = settingsFocus,
+                    onRetry = viewModel::load,
+                )
+            }
         }
 
         if (showMenu) {
@@ -208,6 +213,8 @@ fun HomeScreen(
                 onSelect = viewModel::setThemeMode,
                 textSize = textSize,
                 onSelectTextSize = viewModel::setTextSize,
+                tileSize = homeTileSize,
+                onSelectTileSize = viewModel::setHomeTileSize,
                 onDismiss = { showAppearance = false },
             )
         }
@@ -624,6 +631,8 @@ private fun AppearanceDialog(
     onSelect: (ThemeMode) -> Unit,
     textSize: TextSize,
     onSelectTextSize: (TextSize) -> Unit,
+    tileSize: HomeTileSize,
+    onSelectTileSize: (HomeTileSize) -> Unit,
     onDismiss: () -> Unit,
 ) {
     BackHandler(enabled = true, onBack = onDismiss)
@@ -635,9 +644,11 @@ private fun AppearanceDialog(
     // (and only while the dialog has actually lost focus, so we never fight the user's navigation).
     val themeFocus = remember { FocusRequester() }
     val textFocus = remember { FocusRequester() }
+    val tileFocus = remember { FocusRequester() }
     var dialogHasFocus by remember { mutableStateOf(true) }
     var lastMode by remember { mutableStateOf(mode) }
     var lastText by remember { mutableStateOf(textSize) }
+    var lastTile by remember { mutableStateOf(tileSize) }
     suspend fun restoreFocus(target: FocusRequester) {
         repeat(20) {
             delay(30)
@@ -649,6 +660,9 @@ private fun AppearanceDialog(
     }
     LaunchedEffect(textSize) {
         if (textSize != lastText) { lastText = textSize; restoreFocus(textFocus) }
+    }
+    LaunchedEffect(tileSize) {
+        if (tileSize != lastTile) { lastTile = tileSize; restoreFocus(tileFocus) }
     }
     Box(
         modifier = Modifier
@@ -717,6 +731,25 @@ private fun AppearanceDialog(
                     modifier = if (textSize == TextSize.LARGE) Modifier.focusRequester(textFocus) else Modifier,
                     onClick = { onSelectTextSize(TextSize.LARGE) },
                 )
+            }
+            Text(
+                text = str.homeTilesLabel,
+                color = AppColors.textSecondary,
+                style = MaterialTheme.typography.labelLarge,
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                listOf(
+                    HomeTileSize.SMALL to str.textSizeSmall,
+                    HomeTileSize.NORMAL to str.textSizeNormal,
+                    HomeTileSize.LARGE to str.textSizeLarge,
+                ).forEach { (size, label) ->
+                    OptionChip(
+                        label = label,
+                        selected = tileSize == size,
+                        modifier = if (tileSize == size) Modifier.focusRequester(tileFocus) else Modifier,
+                        onClick = { onSelectTileSize(size) },
+                    )
+                }
             }
             Button(onClick = onDismiss, colors = brandButtonColors()) { Text(str.actionDone) }
         }
@@ -1039,13 +1072,17 @@ private fun FailedRail(title: String, onRetry: () -> Unit) {
     }
 }
 
+/** Scale for the Home tiles, from the user's Home thumbnail size ([HomeTileSize]). */
+private val LocalTileScale = staticCompositionLocalOf { HomeTileSize.NORMAL.scale }
+
 @Composable
 private fun AssetTile(asset: Asset, onClick: () -> Unit) {
+    val s = LocalTileScale.current
     Card(
         onClick = onClick,
         border = CardFocus.border(),
         scale = CardFocus.scale(),
-        modifier = Modifier.size(180.dp),
+        modifier = Modifier.size(180.dp * s),
     ) {
         AssetThumbnail(asset, modifier = Modifier.fillMaxSize())
     }
@@ -1055,11 +1092,12 @@ private fun AssetTile(asset: Asset, onClick: () -> Unit) {
 private fun AlbumTile(album: Album, onClick: () -> Unit) {
     // Overlay style (like Places/Memories): name + count sit over the thumbnail on a gradient,
     // inside the card so they scale with the image and are never covered.
+    val s = LocalTileScale.current
     Card(
         onClick = onClick,
         border = CardFocus.border(),
         scale = CardFocus.scale(),
-        modifier = Modifier.size(200.dp),
+        modifier = Modifier.size(200.dp * s),
     ) {
         Box(modifier = Modifier.fillMaxSize().background(AppColors.placeholder)) {
             AsyncImage(
@@ -1071,7 +1109,7 @@ private fun AlbumTile(album: Album, onClick: () -> Unit) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(88.dp)
+                    .height(88.dp * s)
                     .align(Alignment.BottomCenter)
                     .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xCC000000)))),
             )
@@ -1097,11 +1135,12 @@ private fun AlbumTile(album: Album, onClick: () -> Unit) {
 @Composable
 private fun PersonTile(person: Person, onClick: () -> Unit) {
     // Overlay style (like Places/Memories): name over the avatar on a gradient, inside the card.
+    val s = LocalTileScale.current
     Card(
         onClick = onClick,
         border = CardFocus.border(),
         scale = CardFocus.scale(),
-        modifier = Modifier.size(140.dp),
+        modifier = Modifier.size(140.dp * s),
     ) {
         Box(modifier = Modifier.fillMaxSize().background(AppColors.placeholder)) {
             AsyncImage(
@@ -1113,7 +1152,7 @@ private fun PersonTile(person: Person, onClick: () -> Unit) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(64.dp)
+                    .height(64.dp * s)
                     .align(Alignment.BottomCenter)
                     .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xCC000000)))),
             )
@@ -1142,11 +1181,12 @@ private fun PlaceTile(
     val thumbnailUrl by produceState(place.thumbnailUrl, place.city) {
         if (value.isBlank()) value = loadThumbnail(place.city)
     }
+    val s = LocalTileScale.current
     Card(
         onClick = onClick,
         border = CardFocus.border(),
         scale = CardFocus.scale(),
-        modifier = Modifier.width(240.dp).height(150.dp),
+        modifier = Modifier.width(240.dp * s).height(150.dp * s),
     ) {
         Box(modifier = Modifier.fillMaxSize().background(AppColors.placeholder)) {
             AsyncImage(
@@ -1158,7 +1198,7 @@ private fun PlaceTile(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(72.dp)
+                    .height(72.dp * s)
                     .align(Alignment.BottomCenter)
                     .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xCC000000)))),
             )
@@ -1188,11 +1228,12 @@ private fun PlaceTile(
 
 @Composable
 private fun MemoryTile(memory: Memory, onClick: () -> Unit) {
+    val s = LocalTileScale.current
     Card(
         onClick = onClick,
         border = CardFocus.border(),
         scale = CardFocus.scale(),
-        modifier = Modifier.width(280.dp).height(160.dp),
+        modifier = Modifier.width(280.dp * s).height(160.dp * s),
     ) {
         Box(modifier = Modifier.fillMaxSize().background(AppColors.placeholder)) {
             memory.assets.firstOrNull()?.let { cover ->
@@ -1201,7 +1242,7 @@ private fun MemoryTile(memory: Memory, onClick: () -> Unit) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(88.dp)
+                    .height(88.dp * s)
                     .align(Alignment.BottomCenter)
                     .background(
                         Brush.verticalGradient(listOf(Color.Transparent, Color(0xCC000000))),
@@ -1213,6 +1254,8 @@ private fun MemoryTile(memory: Memory, onClick: () -> Unit) {
                     color = Color.White,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 if (memory.subtitle.isNotEmpty()) {
                     Text(

@@ -60,6 +60,7 @@ interface Strings {
     val textSizeSmall: String
     val textSizeNormal: String
     val textSizeLarge: String
+    val homeTilesLabel: String
     val actionDone: String
 
     // Language
@@ -198,6 +199,7 @@ object En : Strings {
     override val textSizeSmall = "Small"
     override val textSizeNormal = "Normal"
     override val textSizeLarge = "Large"
+    override val homeTilesLabel = "Home thumbnails"
     override val actionDone = "Done"
 
     override val languageTitle = "Language"
@@ -343,6 +345,7 @@ object Es : Strings {
     override val textSizeSmall = "Pequeño"
     override val textSizeNormal = "Normal"
     override val textSizeLarge = "Grande"
+    override val homeTilesLabel = "Miniaturas del inicio"
     override val actionDone = "Listo"
 
     override val languageTitle = "Idioma"
@@ -489,6 +492,7 @@ object Pt : Strings {
     override val textSizeSmall = "Pequeno"
     override val textSizeNormal = "Normal"
     override val textSizeLarge = "Grande"
+    override val homeTilesLabel = "Miniaturas da tela inicial"
     override val actionDone = "Concluído"
 
     override val languageTitle = "Idioma"
@@ -635,6 +639,7 @@ object It : Strings {
     override val textSizeSmall = "Piccolo"
     override val textSizeNormal = "Normale"
     override val textSizeLarge = "Grande"
+    override val homeTilesLabel = "Miniature della Home"
     override val actionDone = "Fatto"
 
     override val languageTitle = "Lingua"

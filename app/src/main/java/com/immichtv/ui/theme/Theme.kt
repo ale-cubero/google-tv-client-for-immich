@@ -40,6 +40,13 @@ enum class ThemeMode { DARK, LIGHT }
  */
 enum class TextSize(val scale: Float) { SMALL(0.68f), NORMAL(0.78f), LARGE(0.88f) }
 
+/**
+ * User-selectable size of the Home screen's thumbnails, persisted in settings. Home only: other
+ * screens keep their own sizes. [scale] multiplies the tile dimensions; [LARGE] is the original
+ * size, and [NORMAL] (the default) and [SMALL] fit more tiles on each rail.
+ */
+enum class HomeTileSize(val scale: Float) { SMALL(0.7f), NORMAL(0.85f), LARGE(1f) }
+
 /** Active text size, provided by [ImmichTvTheme] so nested themes (e.g. the viewer) inherit it. */
 val LocalTextSize = staticCompositionLocalOf { TextSize.NORMAL }
 

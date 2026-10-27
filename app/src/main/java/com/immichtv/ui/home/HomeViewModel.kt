@@ -100,6 +100,13 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch { settings.saveTextSize(size) }
     }
 
+    val homeTileSize: StateFlow<com.immichtv.ui.theme.HomeTileSize> =
+        settings.homeTileSize.stateIn(viewModelScope, SharingStarted.Eagerly, com.immichtv.ui.theme.HomeTileSize.NORMAL)
+
+    fun setHomeTileSize(size: com.immichtv.ui.theme.HomeTileSize) {
+        viewModelScope.launch { settings.saveHomeTileSize(size) }
+    }
+
     val language: StateFlow<com.immichtv.ui.i18n.Language> =
         settings.language.stateIn(viewModelScope, SharingStarted.Eagerly, com.immichtv.ui.i18n.Language.ENGLISH)
 

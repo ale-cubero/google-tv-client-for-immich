@@ -21,7 +21,7 @@ This app picks per video: landscape and upright videos keep full HDR, and only r
 - **Smooth on huge libraries** — tens of thousands of photos scroll smoothly, with a year rail to jump across years instantly.
 - **Photo & video viewer** — full-screen, hardware-decoded playback with **HDR**, and Motion Photos (Samsung / Apple / Google live photos).
 - **Slideshow & screensaver** — start a slideshow from any photo, or use the app as your TV's screensaver.
-- **Light & dark themes**, three text sizes, and **English, Spanish, Portuguese and Italian**.
+- **Light & dark themes**, three text sizes, three Home thumbnail sizes, and **English, Spanish, Portuguese and Italian**.
 - **Read-only & private** — cannot modify your server; your API key is encrypted on the device.
 - **Made for the remote** — every screen works with just **D-pad, OK and Back**.
 
@@ -84,7 +84,7 @@ Choose **Connect**. You can change these later under **Settings → Change serve
 | Viewer | **OK** | Opens an action bar: **Show details** (date, place, camera, people), **Start slideshow**, **Play / Pause** (videos), **Play motion photo**, **Go to this day** |
 | Viewer | **↓** | Show the control hints again; scrolls the details panel when it's open |
 
-The **Settings** button on Home has: change server, refresh, appearance (theme & text size), language, slideshow options (interval, shuffle), log out, and about.
+The **Settings** button on Home has: change server, refresh, appearance (theme, text size, Home thumbnail size), language, slideshow options (interval, shuffle), log out, and about.
 
 ## Screenshots
 

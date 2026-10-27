@@ -27,6 +27,7 @@ import com.immichtv.data.crypto.KeystoreCrypto
 import com.immichtv.domain.ServerSettings
 import com.immichtv.domain.SlideshowPrefs
 import com.immichtv.ui.i18n.Language
+import com.immichtv.ui.theme.HomeTileSize
 import com.immichtv.ui.theme.TextSize
 import com.immichtv.ui.theme.ThemeMode
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -68,6 +69,7 @@ class SettingsRepository @Inject constructor(
     private val keySlideshowShuffle = booleanPreferencesKey("slideshow_shuffle")
     private val keyThemeMode = stringPreferencesKey("theme_mode")
     private val keyTextSize = stringPreferencesKey("text_size")
+    private val keyHomeTileSize = stringPreferencesKey("home_tile_size")
     private val keyLanguage = stringPreferencesKey("language")
 
     /** Latest settings, readable synchronously from an interceptor. */
@@ -135,6 +137,18 @@ class SettingsRepository @Inject constructor(
 
     suspend fun saveTextSize(size: TextSize) {
         dataStore.edit { it[keyTextSize] = size.name }
+    }
+
+    val homeTileSize: Flow<HomeTileSize> = dataStore.data.map {
+        when (it[keyHomeTileSize]) {
+            HomeTileSize.SMALL.name -> HomeTileSize.SMALL
+            HomeTileSize.LARGE.name -> HomeTileSize.LARGE
+            else -> HomeTileSize.NORMAL // default & any unknown value
+        }
+    }
+
+    suspend fun saveHomeTileSize(size: HomeTileSize) {
+        dataStore.edit { it[keyHomeTileSize] = size.name }
     }
 
     suspend fun saveLanguage(language: Language) {
