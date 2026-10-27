@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="108" height="108">
+  <!-- TV client for Immich app icon. Colors: Immich palette (red #FA2921, pink #ED79B5, yellow #FFB400, blue #1E83F7, green #18C249). -->
+  <rect width="108" height="108" rx="24" fill="#101418"/>
+  <path fill="#1E83F7" d="M22,20h64a8,8 0 0 1 8,8v40a8,8 0 0 1 -8,8h-64a8,8 0 0 1 -8,-8v-40a8,8 0 0 1 8,-8z"/>
+  <path fill="#101418" d="M23.5,25h61a4.5,4.5 0 0 1 4.5,4.5v37a4.5,4.5 0 0 1 -4.5,4.5h-61a4.5,4.5 0 0 1 -4.5,-4.5v-37a4.5,4.5 0 0 1 4.5,-4.5z"/>
+  <path fill="#1E83F7" d="M50,76h8v7h-8z"/>
+  <path fill="#1E83F7" d="M37.75,82h32.5a2.75,2.75 0 0 1 2.75,2.75v0a2.75,2.75 0 0 1 -2.75,2.75h-32.5a2.75,2.75 0 0 1 -2.75,-2.75v-0a2.75,2.75 0 0 1 2.75,-2.75z"/>
+  <path fill="#FFFFFF" d="M48,32.2h12a2,2 0 0 1 2,2v3a2,2 0 0 1 -2,2h-12a2,2 0 0 1 -2,-2v-3a2,2 0 0 1 2,-2z"/>
+  <path fill="#FA2921" d="M38.5,34.2h4a1.5,1.5 0 0 1 1.5,1.5v1a1.5,1.5 0 0 1 -1.5,1.5h-4a1.5,1.5 0 0 1 -1.5,-1.5v-1a1.5,1.5 0 0 1 1.5,-1.5z"/>
+  <path fill="#FFFFFF" d="M38.8,37.2h30.4a4.8,4.8 0 0 1 4.8,4.8v16a4.8,4.8 0 0 1 -4.8,4.8h-30.4a4.8,4.8 0 0 1 -4.8,-4.8v-16a4.8,4.8 0 0 1 4.8,-4.8z"/>
+  <path fill="#101418" d="M43.584,50.512a10.416,10.416 0 1 0 20.832,0a10.416,10.416 0 1 0 -20.832,0z"/>
+  <path fill="none" stroke="#FA2921" stroke-width="3.318" stroke-linecap="round" d="M54.659,42.984A7.557,7.557 0 0 1 60.956,47.559"/>
+  <path fill="none" stroke="#FFB400" stroke-width="3.318" stroke-linecap="round" d="M61.363,48.812A7.557,7.557 0 0 1 58.958,56.215"/>
+  <path fill="none" stroke="#18C249" stroke-width="3.318" stroke-linecap="round" d="M57.892,56.990A7.557,7.557 0 0 1 50.108,56.990"/>
+  <path fill="none" stroke="#1E83F7" stroke-width="3.318" stroke-linecap="round" d="M49.042,56.215A7.557,7.557 0 0 1 46.637,48.812"/>
+  <path fill="none" stroke="#ED79B5" stroke-width="3.318" stroke-linecap="round" d="M47.044,47.559A7.557,7.557 0 0 1 53.341,42.984"/>
+  <path fill="#101418" d="M49.208,50.512a4.792,4.792 0 1 0 9.585,0a4.792,4.792 0 1 0 -9.585,0z"/>
+  <path fill="#FFFFFF" fill-opacity="0.85" d="M50.590,48.484a1.382,1.382 0 1 0 2.765,0a1.382,1.382 0 1 0 -2.765,0z"/>
+  <path fill="#18C249" d="M66.400,42.320a2.000,2.000 0 1 0 4.000,0a2.000,2.000 0 1 0 -4.000,0z"/>
+</svg>

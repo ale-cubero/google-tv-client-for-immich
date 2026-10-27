@@ -1,4 +1,8 @@
-# TV client for Immich
+<p align="center">
+  <img src="docs/branding/icon-rounded.svg" width="128" height="128" alt="TV client for Immich icon">
+</p>
+
+<h1 align="center">TV client for Immich</h1>
 
 A native **Google TV / Android TV** app for browsing your self-hosted [Immich](https://immich.app) photo & video library from the couch. Fast remote-control navigation, hardware-decoded video with HDR, and a **strictly read-only** connection: the app can look at your library, never change it.
 
