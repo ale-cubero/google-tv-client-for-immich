@@ -26,15 +26,15 @@ This app picks per video: landscape and upright videos keep full HDR, and only r
 
 ### Everything else
 
-- **Browse your whole library** — an "On this day" memories row, Recent, Albums, People, Places and Videos, plus a month-by-month timeline of everything.
-- **Smart search** — search by what's *in* the photo ("beach", "birthday cake", "dog"), using your Immich server's smart search.
-- **Photo & video viewer** — full-screen, hardware-decoded playback, and Motion Photos (Samsung / Apple / Google live photos).
-- **Slideshow & screensaver** — start a slideshow from any photo, or use the app as your TV's screensaver.
 - **Make it yours** — under Settings → Appearance and Language:
   - Light or dark theme, each with a subtle patterned background
   - Three text sizes
   - Three Home thumbnail sizes
   - English, Spanish, Portuguese or Italian
+- **Browse your whole library** — an "On this day" memories row, Recent, Albums, People, Places and Videos, plus a month-by-month timeline of everything.
+- **Smart search** — search by what's *in* the photo ("beach", "birthday cake", "dog"), using your Immich server's smart search.
+- **Photo & video viewer** — full-screen, hardware-decoded playback, and Motion Photos (Samsung / Apple / Google live photos).
+- **Slideshow & screensaver** — start a slideshow from any photo, or use the app as your TV's screensaver.
 
 ## Install on your Google TV
 
