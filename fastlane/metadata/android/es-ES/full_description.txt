@@ -13,7 +13,7 @@ DISFRÚTALA EN LA PANTALLA GRANDE
 
 HECHO PARA EL CONTROL REMOTO
 • Cada pantalla funciona solo con las flechas, OK y Atrás
-• Temas claro y oscuro y tres tamaños de texto
+• Temas claro y oscuro, tres tamaños de texto y tres tamaños de miniaturas en el inicio
 • Español, inglés, portugués e italiano
 
 SOLO LECTURA Y PRIVADO

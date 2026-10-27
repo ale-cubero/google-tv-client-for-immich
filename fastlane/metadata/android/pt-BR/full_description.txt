@@ -13,7 +13,7 @@ APROVEITE NA TELA GRANDE
 
 FEITO PARA O CONTROLE REMOTO
 • Todas as telas funcionam só com as setas, OK e Voltar
-• Temas claro e escuro e três tamanhos de texto
+• Temas claro e escuro, três tamanhos de texto e três tamanhos de miniaturas na tela inicial
 • Português, inglês, espanhol e italiano
 
 SOMENTE LEITURA E PRIVADO

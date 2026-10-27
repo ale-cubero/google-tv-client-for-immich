@@ -13,7 +13,7 @@ GUSTATELA SUL GRANDE SCHERMO
 
 PENSATA PER IL TELECOMANDO
 • Ogni schermata funziona solo con le frecce, OK e Indietro
-• Temi chiaro e scuro e tre dimensioni del testo
+• Temi chiaro e scuro, tre dimensioni del testo e tre dimensioni delle miniature nella Home
 • Italiano, inglese, spagnolo e portoghese
 
 SOLA LETTURA E PRIVACY
