@@ -16,14 +16,25 @@ This app picks per video: landscape and upright videos keep full HDR, and only r
 
 ## Features
 
+### What makes it different
+
+- **HDR video that's always the right way up** — each video is played the way that suits it: landscape clips keep full HDR, and portrait clips are never stretched or sideways (see [Why this exists](#why-this-exists)).
+- **Strictly read-only** — the app can't upload, delete, favorite or edit anything, and this is enforced in its network layer, not just hidden in the UI. Safe to leave on a shared family TV.
+- **Made for the remote** — every screen works with just **D-pad, OK and Back**, and a year rail on the timeline jumps straight to any year.
+- **Smooth on huge libraries** — the timeline knows the shape of your whole library up front and loads each month only as it comes into view, so tens of thousands of photos scroll without stutter.
+- **Private by design** — no analytics, ads or tracking, and the app talks only to your server. Your API key is encrypted on the device, and a self-signed certificate is trusted only after you approve its fingerprint.
+
+### Everything else
+
 - **Browse your whole library** — an "On this day" memories row, Recent, Albums, People, Places and Videos, plus a month-by-month timeline of everything.
 - **Smart search** — search by what's *in* the photo ("beach", "birthday cake", "dog"), using your Immich server's smart search.
-- **Smooth on huge libraries** — tens of thousands of photos scroll smoothly, with a year rail to jump across years instantly.
-- **Photo & video viewer** — full-screen, hardware-decoded playback with **HDR**, and Motion Photos (Samsung / Apple / Google live photos).
+- **Photo & video viewer** — full-screen, hardware-decoded playback, and Motion Photos (Samsung / Apple / Google live photos).
 - **Slideshow & screensaver** — start a slideshow from any photo, or use the app as your TV's screensaver.
-- **Light & dark themes**, three text sizes, three Home thumbnail sizes, and **English, Spanish, Portuguese and Italian**.
-- **Read-only & private** — cannot modify your server; your API key is encrypted on the device.
-- **Made for the remote** — every screen works with just **D-pad, OK and Back**.
+- **Make it yours** — under Settings → Appearance and Language:
+  - Light or dark theme, each with a subtle patterned background
+  - Three text sizes
+  - Three Home thumbnail sizes
+  - English, Spanish, Portuguese or Italian
 
 ## Install on your Google TV
 
