@@ -76,6 +76,7 @@ import com.immichtv.ui.common.EmptyState
 import com.immichtv.ui.common.ErrorState
 import com.immichtv.ui.common.LoadingState
 import com.immichtv.ui.theme.AppColors
+import com.immichtv.ui.theme.screenBackground
 import com.immichtv.domain.Asset
 import com.immichtv.domain.BucketMeta
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -100,7 +101,7 @@ fun TimelineScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .screenBackground(),
     ) {
         when (val s = state) {
             is TimelineUiState.Loading -> LoadingState(str.timelineLoading)

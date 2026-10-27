@@ -78,6 +78,7 @@ import com.immichtv.ui.common.EmptyState
 import com.immichtv.ui.common.ErrorState
 import com.immichtv.ui.common.LoadingState
 import com.immichtv.ui.theme.AppColors
+import com.immichtv.ui.theme.screenBackground
 
 @Composable
 fun SearchScreen(
@@ -91,7 +92,7 @@ fun SearchScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .screenBackground()
             .padding(horizontal = 48.dp, vertical = 36.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {

@@ -77,6 +77,7 @@ import androidx.tv.material3.Text
 import com.immichtv.ui.common.brandButtonColors
 import com.immichtv.ui.theme.AppColors
 import com.immichtv.ui.theme.AppDimens
+import com.immichtv.ui.theme.screenBackground
 
 @Composable
 fun SetupScreen(
@@ -93,7 +94,7 @@ fun SetupScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .screenBackground()
             .padding(horizontal = AppDimens.overscanH, vertical = AppDimens.overscanV),
         contentAlignment = Alignment.Center,
     ) {

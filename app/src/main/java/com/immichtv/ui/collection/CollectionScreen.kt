@@ -50,6 +50,7 @@ import com.immichtv.ui.common.EmptyState
 import com.immichtv.ui.common.ErrorState
 import com.immichtv.ui.common.LoadingState
 import com.immichtv.domain.Asset
+import com.immichtv.ui.theme.screenBackground
 
 @Composable
 fun CollectionScreen(
@@ -62,7 +63,7 @@ fun CollectionScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .screenBackground(),
     ) {
         when (val s = state) {
             is CollectionUiState.Loading -> LoadingState(str.collectionLoading)

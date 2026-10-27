@@ -38,6 +38,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.BringIntoViewSpec
 import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -66,6 +67,7 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -77,6 +79,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
@@ -106,6 +109,7 @@ import com.immichtv.ui.theme.AppColors
 import com.immichtv.ui.theme.AppDimens
 import com.immichtv.ui.theme.TextSize
 import com.immichtv.ui.theme.ThemeMode
+import com.immichtv.ui.theme.screenBackground
 import kotlinx.coroutines.delay
 import com.immichtv.domain.Album
 import com.immichtv.domain.Asset
@@ -138,6 +142,19 @@ fun HomeScreen(
     var showSlideshowSettings by remember { mutableStateOf(false) }
     var showAppearance by remember { mutableStateOf(false) }
     var showLanguage by remember { mutableStateOf(false) }
+    // Closing the Settings menu or one of its dialogs returns focus to the Settings button, where
+    // the user opened it (otherwise Compose drops it on the first focusable, Timeline).
+    val settingsFocus = remember { FocusRequester() }
+    val overlayOpen = showMenu || showAbout || showSlideshowSettings || showAppearance || showLanguage
+    var overlayWasOpen by remember { mutableStateOf(false) }
+    LaunchedEffect(overlayOpen) {
+        if (overlayOpen) {
+            overlayWasOpen = true
+        } else if (overlayWasOpen) {
+            overlayWasOpen = false
+            runCatching { settingsFocus.requestFocus() }
+        }
+    }
 
     // Home stays on the back stack for the whole session — refresh stale data when it resurfaces.
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -152,7 +169,7 @@ fun HomeScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .screenBackground(),
     ) {
         when (val s = state) {
             is HomeUiState.Loading -> LoadingState(LocalStrings.current.homeLoading)
@@ -168,6 +185,7 @@ fun HomeScreen(
                 onOpenPlace = onOpenPlace,
                 loadPlaceThumbnail = viewModel::placeThumbnail,
                 onOpenSettings = { showMenu = true },
+                settingsFocus = settingsFocus,
                 onRetry = viewModel::load,
             )
         }
@@ -223,6 +241,7 @@ private fun HomeContent(
     onOpenPlace: (String) -> Unit,
     loadPlaceThumbnail: suspend (String) -> String,
     onOpenSettings: () -> Unit,
+    settingsFocus: FocusRequester,
     onRetry: () -> Unit,
 ) {
     val isEmpty = data == HomeData()
@@ -253,7 +272,12 @@ private fun HomeContent(
                 Spacer(modifier = Modifier.weight(1f))
                 SearchBar(onClick = onOpenSearch, modifier = Modifier.width(420.dp))
                 Spacer(modifier = Modifier.weight(1f))
-                ChromeButton(Icons.Filled.Settings, str.settings, onClick = onOpenSettings)
+                ChromeButton(
+                    Icons.Filled.Settings,
+                    str.settings,
+                    onClick = onOpenSettings,
+                    modifier = Modifier.focusRequester(settingsFocus),
+                )
             }
         }
 
@@ -348,6 +372,18 @@ private fun HomeContent(
  */
 private fun Modifier.chromeClickable(onClick: () -> Unit) =
     clickable(interactionSource = null, indication = null, onClick = onClick)
+
+/**
+ * Dismisses an overlay when its scrim is tapped (touch or mouse). Unlike `clickable`, the scrim
+ * doesn't become focusable: if it were, the first Back press would move focus from the panel onto
+ * the invisible scrim (Compose treats Back as "exit the focus group"), and only a second Back
+ * would close the overlay.
+ */
+@Composable
+private fun Modifier.dismissOnTapOutside(onDismiss: () -> Unit): Modifier {
+    val dismiss by rememberUpdatedState(onDismiss)
+    return pointerInput(Unit) { detectTapGestures { dismiss() } }
+}
 
 // Shared by the three header controls so Timeline / Search / Settings sit on one line.
 private val TopBarHeight = 40.dp
@@ -449,7 +485,7 @@ private fun SettingsMenu(
         modifier = Modifier
             .fillMaxSize()
             .background(AppColors.scrim)
-            .clickable(onClick = onDismiss), // OK/click outside the panel dismisses
+            .dismissOnTapOutside(onDismiss),
         contentAlignment = Alignment.TopEnd,
     ) {
         Column(
@@ -522,7 +558,7 @@ private fun SlideshowSettingsDialog(
         modifier = Modifier
             .fillMaxSize()
             .background(AppColors.scrim)
-            .clickable(onClick = onDismiss),
+            .dismissOnTapOutside(onDismiss),
         contentAlignment = Alignment.Center,
     ) {
         Column(
@@ -618,7 +654,7 @@ private fun AppearanceDialog(
         modifier = Modifier
             .fillMaxSize()
             .background(AppColors.scrim)
-            .clickable(onClick = onDismiss),
+            .dismissOnTapOutside(onDismiss),
         contentAlignment = Alignment.Center,
     ) {
         Column(
@@ -703,7 +739,7 @@ private fun LanguageDialog(
         modifier = Modifier
             .fillMaxSize()
             .background(AppColors.scrim)
-            .clickable(onClick = onDismiss),
+            .dismissOnTapOutside(onDismiss),
         contentAlignment = Alignment.TopEnd,
     ) {
         Column(
@@ -860,7 +896,7 @@ private fun AboutDialog(onDismiss: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .background(AppColors.scrim)
-            .clickable(onClick = onDismiss), // click/OK outside the card dismisses
+            .dismissOnTapOutside(onDismiss),
         contentAlignment = Alignment.Center,
     ) {
         Row(

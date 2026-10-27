@@ -122,10 +122,11 @@ data class AppColorScheme(
     val chip: Color,
     val outline: Color,
     val error: Color,
-    val chromeBg: Color,     // translucent pill background (e.g. Home Settings button)
+    val chromeBg: Color,     // pill background (Home Search/Settings); opaque so the pattern doesn't show through
     val chromeBorder: Color, // its border when unfocused
     val onChrome: Color,     // its text/icon when unfocused
     val menuFocus: Color,    // focused row/chip background in menus & dialogs
+    val pattern: Color,      // screen-background maze lines; Transparent = plain background
 )
 
 val DarkAppColors = AppColorScheme(
@@ -139,10 +140,11 @@ val DarkAppColors = AppColorScheme(
     chip = Color(0x88000000),
     outline = Color(0x1FFFFFFF),
     error = Color(0xFFF87171),
-    chromeBg = Color(0x33000000),
+    chromeBg = Color(0xFF080808),     // was 20% black over the #0A0A0A background
     chromeBorder = Color(0x66FFFFFF),
     onChrome = Color(0xFFC3C8CF),
     menuFocus = Color(0xFF33373B),     // hover/focus lighter than the #212121 panel
+    pattern = Color(0xFF1A1A1A),
 )
 
 val LightAppColors = AppColorScheme(
@@ -156,10 +158,11 @@ val LightAppColors = AppColorScheme(
     chip = Color(0x88000000),
     outline = Color(0x1F000000),
     error = Color(0xFFB3261E),
-    chromeBg = Color(0x0D000000),
+    chromeBg = Color(0xFFF2F2F2),     // was 5% black over white
     chromeBorder = Color(0x33000000),
     onChrome = Color(0xFF3A434D),
     menuFocus = Color(0xFFE7EAF6),     // subtle indigo-tinted focus (matches primary)
+    pattern = Color(0xFFE6E6E6),
 )
 
 val LocalAppColors = staticCompositionLocalOf { DarkAppColors }
@@ -180,6 +183,7 @@ object AppColors {
     val chromeBorder: Color @Composable @ReadOnlyComposable get() = LocalAppColors.current.chromeBorder
     val onChrome: Color @Composable @ReadOnlyComposable get() = LocalAppColors.current.onChrome
     val menuFocus: Color @Composable @ReadOnlyComposable get() = LocalAppColors.current.menuFocus
+    val pattern: Color @Composable @ReadOnlyComposable get() = LocalAppColors.current.pattern
 }
 
 /**
