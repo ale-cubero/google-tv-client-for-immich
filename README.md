@@ -6,7 +6,10 @@
 
 A native **Google TV / Android TV** app for browsing your self-hosted [Immich](https://immich.app) photo & video library from the couch. Fast remote-control navigation, hardware-decoded video with HDR, and a **strictly read-only** connection: the app can look at your library, never change it.
 
-> Unofficial, sideloaded app (not on the Play Store). Not affiliated with the Immich project.
+> Unofficial, sideloaded app (not on the Play Store yet). Not affiliated with the Immich project.
+
+> [!NOTE]
+> **Coming to Google Play — testers wanted.** Before a new app can be published, Google requires 12 people to test it for 14 days. If you have a Google TV or Android TV and an Immich server, and you'd like to help, [open an issue](https://github.com/ale-cubero/google-tv-client-for-immich/issues/new?title=I%27d%20like%20to%20test%20the%20Play%20Store%20version) and I'll reply with how to join. Please don't post your email address in the issue.
 
 ![Home screen](docs/screenshots/home.png)
 
